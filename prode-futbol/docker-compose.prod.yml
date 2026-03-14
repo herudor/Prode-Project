@@ -1,0 +1,46 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: prode-mongo-prod
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: prode-futbol
+    volumes:
+      - mongo_prod_data:/data/db
+    networks:
+      - prode-prod-net
+
+  backend:
+    build: ./backend
+    container_name: prode-backend-prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/prode-futbol?authSource=admin
+    env_file: ./backend/.env.prod
+    ports:
+      - "5001:5000"
+    depends_on:
+      - mongo
+    networks:
+      - prode-prod-net
+
+  frontend:
+    build: ./frontend
+    container_name: prode-frontend-prod
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - prode-prod-net
+
+volumes:
+  mongo_prod_data:
+
+networks:
+  prode-prod-net:
+    driver: bridge

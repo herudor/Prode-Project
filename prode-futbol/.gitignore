@@ -1,0 +1,24 @@
+# Dependencias
+node_modules/
+*/node_modules/
+
+# Variables de entorno (NUNCA subir a git)
+.env
+.env.local
+.env.prod
+.env.production
+backend/.env
+backend/.env.dev
+backend/.env.prod
+frontend/.env
+frontend/.env.production
+
+# Build
+frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
