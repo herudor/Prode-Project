@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const Match = require('../models/Match');
 const Prediction = require('../models/Prediction');
-const { getSeasonMatches, getLastResults } = require('../services/sportsdbService');
+const { getSeasonMatches } = require('../services/sportsdbService');
 const { calculateMatchPoints } = require('../utils/scoring');
 
 /**
@@ -24,14 +24,20 @@ async function syncMatches() {
         console.log(`[SyncJob] Partido creado: ${event.homeTeam} vs ${event.awayTeam}`);
       } else {
         const wasFinished = existing.status === 'finished';
-        await Match.findByIdAndUpdate(existing._id, {
+        const update = {
           status: event.status,
           homeScore: event.homeScore,
           awayScore: event.awayScore,
           homeFlag: event.homeFlag || existing.homeFlag,
           awayFlag: event.awayFlag || existing.awayFlag,
-          round: event.round || existing.round
-        });
+          round: event.round || existing.round,
+          homeTeamLabel: event.homeTeamLabel || existing.homeTeamLabel,
+          awayTeamLabel: event.awayTeamLabel || existing.awayTeamLabel,
+        };
+        // Actualizar nombre de equipo en eliminatorias cuando ya se definió
+        if (event.homeTeam && event.homeTeam !== 'TBD') update.homeTeam = event.homeTeam;
+        if (event.awayTeam && event.awayTeam !== 'TBD') update.awayTeam = event.awayTeam;
+        await Match.findByIdAndUpdate(existing._id, update);
 
         // Si el partido acaba de terminar, calcular puntos
         if (!wasFinished && event.status === 'finished' &&

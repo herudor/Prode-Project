@@ -1,7 +1,10 @@
 import React from 'react';
+import { teamName } from '../utils/teamNames';
+import FlagIcon from './FlagIcon';
 
 const PHASE_LABELS = {
   group: 'Fase de Grupos',
+  round_of_32: 'Ronda de 32',
   round_of_16: 'Octavos de Final',
   quarter: 'Cuartos de Final',
   semi: 'Semifinal',
@@ -22,8 +25,8 @@ const STATUS_LABELS = {
 };
 
 function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('es-AR', {
+  return new Date(dateStr).toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
     weekday: 'short', day: 'numeric', month: 'short',
     hour: '2-digit', minute: '2-digit'
   });
@@ -65,11 +68,10 @@ export default function MatchCard({ match, prediction, onPredict }) {
       <div className="flex items-center justify-between gap-4">
         {/* Home team */}
         <div className="flex-1 text-center">
-          {match.homeFlag
-            ? <img src={match.homeFlag} alt={match.homeTeam} className="w-12 h-12 object-contain mx-auto mb-1" />
-            : <div className="w-12 h-12 bg-gray-800 rounded-full mx-auto mb-1 flex items-center justify-center text-xl">🏳️</div>
-          }
-          <p className="font-semibold text-sm">{match.homeTeam}</p>
+          <div className="flex justify-center mb-2">
+            <FlagIcon teamName={match.homeTeam} size={32} />
+          </div>
+          <p className="font-semibold text-sm">{teamName(match.homeTeam)}</p>
         </div>
 
         {/* Score / VS */}
@@ -96,11 +98,10 @@ export default function MatchCard({ match, prediction, onPredict }) {
 
         {/* Away team */}
         <div className="flex-1 text-center">
-          {match.awayFlag
-            ? <img src={match.awayFlag} alt={match.awayTeam} className="w-12 h-12 object-contain mx-auto mb-1" />
-            : <div className="w-12 h-12 bg-gray-800 rounded-full mx-auto mb-1 flex items-center justify-center text-xl">🏳️</div>
-          }
-          <p className="font-semibold text-sm">{match.awayTeam}</p>
+          <div className="flex justify-center mb-2">
+            <FlagIcon teamName={match.awayTeam} size={32} />
+          </div>
+          <p className="font-semibold text-sm">{teamName(match.awayTeam)}</p>
         </div>
       </div>
 

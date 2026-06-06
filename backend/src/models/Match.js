@@ -8,9 +8,11 @@ const matchSchema = new mongoose.Schema({
   },
   phase: {
     type: String,
-    enum: ['group', 'round_of_16', 'quarter', 'semi', 'third', 'final'],
+    enum: ['group', 'round_of_32', 'round_of_16', 'quarter', 'semi', 'third', 'final'],
     required: true
   },
+  homeTeamLabel: { type: String, default: null },
+  awayTeamLabel: { type: String, default: null },
   group: {
     type: String
   },

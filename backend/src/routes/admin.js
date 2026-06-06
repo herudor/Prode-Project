@@ -9,7 +9,8 @@ const TournamentPrediction = require('../models/TournamentPrediction');
 const auth = require('../middleware/auth');
 const isAdmin = require('../middleware/isAdmin');
 const { syncMatches, calculatePredictionPoints } = require('../jobs/syncResults');
-const { calculateChampionPoints, calculateTopScorerPoints } = require('../utils/scoring');
+const { calculateChampionPoints, calculateTopScorerPoints, calculateGroupPoints } = require('../utils/scoring');
+const GroupPrediction = require('../models/GroupPrediction');
 
 // Todas las rutas admin requieren auth + isAdmin
 router.use(auth, isAdmin);
@@ -141,6 +142,33 @@ router.put('/tournament-result', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error actualizando resultado del torneo' });
+  }
+});
+
+// PUT /api/admin/group-result/:group — definir 1° y 2° de un grupo y puntuar predicciones
+router.put('/group-result/:group', async (req, res) => {
+  try {
+    const group = req.params.group.toUpperCase();
+    const { first, second } = req.body;
+    if (!first || !second) {
+      return res.status(400).json({ message: 'first y second son requeridos' });
+    }
+
+    const predictions = await GroupPrediction.find({ group });
+    for (const pred of predictions) {
+      pred.points = calculateGroupPoints(pred.first, pred.second, first, second);
+      await pred.save();
+    }
+
+    res.json({
+      message: `Grupo ${group} actualizado`,
+      first,
+      second,
+      predictionsUpdated: predictions.length
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error actualizando resultado del grupo' });
   }
 });
 

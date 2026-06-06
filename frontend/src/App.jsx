@@ -10,6 +10,8 @@ import Home from './pages/Home';
 import Matches from './pages/Matches';
 import Leaderboard from './pages/Leaderboard';
 import TournamentPredictions from './pages/TournamentPredictions';
+import GroupPredictions from './pages/GroupPredictions';
+import Bracket from './pages/Bracket';
 import Admin from './pages/Admin';
 
 function Layout({ children }) {
@@ -49,6 +51,16 @@ export default function App() {
           <Route path="/tournament" element={
             <ProtectedRoute>
               <Layout><TournamentPredictions /></Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/groups" element={
+            <ProtectedRoute>
+              <Layout><GroupPredictions /></Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/bracket" element={
+            <ProtectedRoute>
+              <Layout><Bracket /></Layout>
             </ProtectedRoute>
           } />
           <Route path="/admin" element={

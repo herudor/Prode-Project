@@ -1,0 +1,108 @@
+// Maps English team names (as returned by worldcup26.ir) → ISO 3166-1 alpha-2 codes
+// Used with the flag-icons CSS library: <span className="fi fi-{code}" />
+const FLAGS = {
+  // América del Sur
+  'Argentina': 'ar',
+  'Brazil': 'br',
+  'Uruguay': 'uy',
+  'Colombia': 'co',
+  'Ecuador': 'ec',
+  'Paraguay': 'py',
+  'Chile': 'cl',
+  'Peru': 'pe',
+  'Venezuela': 've',
+  'Bolivia': 'bo',
+
+  // América del Norte / Central / Caribe
+  'United States': 'us',
+  'USA': 'us',
+  'Mexico': 'mx',
+  'Canada': 'ca',
+  'Costa Rica': 'cr',
+  'Panama': 'pa',
+  'Honduras': 'hn',
+  'Haiti': 'ht',
+  'Jamaica': 'jm',
+  'Trinidad and Tobago': 'tt',
+  'Cuba': 'cu',
+  'Curacao': 'cw',
+  'Curaçao': 'cw',
+
+  // Europa
+  'France': 'fr',
+  'Spain': 'es',
+  'Germany': 'de',
+  'England': 'gb-eng',
+  'Portugal': 'pt',
+  'Netherlands': 'nl',
+  'Belgium': 'be',
+  'Italy': 'it',
+  'Croatia': 'hr',
+  'Poland': 'pl',
+  'Switzerland': 'ch',
+  'Denmark': 'dk',
+  'Sweden': 'se',
+  'Serbia': 'rs',
+  'Scotland': 'gb-sct',
+  'Turkey': 'tr',
+  'Austria': 'at',
+  'Hungary': 'hu',
+  'Greece': 'gr',
+  'Ukraine': 'ua',
+  'Romania': 'ro',
+  'Albania': 'al',
+  'Georgia': 'ge',
+  'Slovenia': 'si',
+  'Czech Republic': 'cz',
+  'Slovakia': 'sk',
+  'Bosnia and Herzegovina': 'ba',
+  'Bosnia-Herzegovina': 'ba',
+  'Norway': 'no',
+  'Finland': 'fi',
+  'Iceland': 'is',
+  'Wales': 'gb-wls',
+  'Ireland': 'ie',
+  'Russia': 'ru',
+  'North Macedonia': 'mk',
+  'Bulgaria': 'bg',
+  'Kosovo': 'xk',
+
+  // África
+  'Morocco': 'ma',
+  'Senegal': 'sn',
+  'Nigeria': 'ng',
+  'Ghana': 'gh',
+  'Cameroon': 'cm',
+  'Ivory Coast': 'ci',
+  "Côte d'Ivoire": 'ci',
+  'Tunisia': 'tn',
+  'Algeria': 'dz',
+  'Egypt': 'eg',
+  'South Africa': 'za',
+  'Mali': 'ml',
+  'Angola': 'ao',
+  'DR Congo': 'cd',
+  'Cape Verde': 'cv',
+  'Zambia': 'zm',
+
+  // Asia
+  'Japan': 'jp',
+  'South Korea': 'kr',
+  'Australia': 'au',
+  'Saudi Arabia': 'sa',
+  'Iran': 'ir',
+  'Qatar': 'qa',
+  'Iraq': 'iq',
+  'Uzbekistan': 'uz',
+  'China': 'cn',
+  'Indonesia': 'id',
+  'Jordan': 'jo',
+  'New Zealand': 'nz',
+};
+
+export function getTeamFlag(name) {
+  if (!name) return null;
+  return FLAGS[name] || null;
+}
+
+export default FLAGS;

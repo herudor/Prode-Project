@@ -194,7 +194,7 @@ function MatchesTab() {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <button onClick={handleSync} disabled={syncing} className="btn-primary">
-          {syncing ? 'Sincronizando...' : 'Sincronizar con TheSportsDB'}
+          {syncing ? 'Sincronizando...' : '🔄 Sincronizar resultados'}
         </button>
         <button onClick={() => setShowCreate(!showCreate)} className="btn-secondary">
           + Crear partido manual

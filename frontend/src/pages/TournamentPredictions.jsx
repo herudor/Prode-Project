@@ -116,7 +116,7 @@ export default function TournamentPredictions() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="card space-y-6">
+      <form onSubmit={handleSubmit} className={`card space-y-6 ${saved?.locked ? 'opacity-60 pointer-events-none' : ''}`}>
         {/* Champion */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -125,6 +125,7 @@ export default function TournamentPredictions() {
           <select
             value={form.champion}
             onChange={e => setForm(prev => ({ ...prev, champion: e.target.value }))}
+            disabled={saved?.locked}
             className="input-field"
           >
             <option value="">-- Seleccioná un equipo --</option>
@@ -144,6 +145,7 @@ export default function TournamentPredictions() {
             type="text"
             value={form.topScorer}
             onChange={e => setForm(prev => ({ ...prev, topScorer: e.target.value }))}
+            disabled={saved?.locked}
             placeholder="Nombre del jugador (ej: Lionel Messi)"
             className="input-field"
           />
@@ -162,14 +164,23 @@ export default function TournamentPredictions() {
           </div>
         )}
 
-        <button type="submit" disabled={saving} className="btn-primary w-full py-3">
-          {saving ? 'Guardando...' : saved?.champion ? 'Actualizar predicción' : 'Guardar predicción'}
-        </button>
+        {!saved?.locked && (
+          <button type="submit" disabled={saving} className="btn-primary w-full py-3">
+            {saving ? 'Guardando...' : saved?.champion ? 'Actualizar predicción' : 'Guardar predicción'}
+          </button>
+        )}
       </form>
 
-      <p className="text-center text-xs text-gray-600 mt-4">
-        Podés actualizar tu predicción hasta que comience el torneo
-      </p>
+      {saved?.locked ? (
+        <div className="flex items-center justify-center gap-2 mt-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+          <span>🔒</span>
+          <span>Predicciones cerradas — el torneo ya comenzó</span>
+        </div>
+      ) : (
+        <p className="text-center text-xs text-gray-600 mt-4">
+          Se cierra automáticamente cuando comience el primer partido
+        </p>
+      )}
     </div>
   );
 }

@@ -57,20 +57,36 @@ router.post('/:matchId', auth, async (req, res) => {
   }
 });
 
-// GET /api/predictions/tournament - predicción del torneo del usuario
+// GET /api/predictions/tournament/me — predicción del torneo + estado de lock
 router.get('/tournament/me', auth, async (req, res) => {
   try {
     const pred = await TournamentPrediction.findOne({ userId: req.user._id });
-    res.json(pred || {});
+    const tournamentStarted = await Match.exists({
+      $or: [
+        { status: { $in: ['live', 'finished'] } },
+        { date: { $lte: new Date() } }
+      ]
+    });
+    res.json({ ...(pred ? pred.toObject() : {}), locked: !!tournamentStarted });
   } catch (err) {
     res.status(500).json({ message: 'Error obteniendo predicción del torneo' });
   }
 });
 
-// POST /api/predictions/tournament - crear o actualizar predicción del torneo
+// POST /api/predictions/tournament/save — guardar predicción (se bloquea al iniciar el torneo)
 router.post('/tournament/save', auth, async (req, res) => {
   try {
     const { champion, topScorer } = req.body;
+
+    const tournamentStarted = await Match.exists({
+      $or: [
+        { status: { $in: ['live', 'finished'] } },
+        { date: { $lte: new Date() } }
+      ]
+    });
+    if (tournamentStarted) {
+      return res.status(400).json({ message: 'Las predicciones están cerradas: el torneo ya comenzó' });
+    }
 
     const pred = await TournamentPrediction.findOneAndUpdate(
       { userId: req.user._id },

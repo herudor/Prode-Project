@@ -24,6 +24,36 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// GET /api/matches/groups-info — equipos por grupo con estado de lock
+router.get('/groups-info', auth, async (req, res) => {
+  try {
+    const matches = await Match.find({ phase: 'group' }).sort({ date: 1 });
+    const groups = {};
+
+    for (const match of matches) {
+      const g = match.group;
+      if (!g) continue;
+      if (!groups[g]) groups[g] = { teams: [], locked: false };
+
+      const addTeam = (name, flag) => {
+        if (name && !groups[g].teams.find(t => t.name === name)) {
+          groups[g].teams.push({ name, flag: flag || null });
+        }
+      };
+      addTeam(match.homeTeam, match.homeFlag);
+      addTeam(match.awayTeam, match.awayFlag);
+
+      if (match.status !== 'upcoming' || match.date <= new Date()) {
+        groups[g].locked = true;
+      }
+    }
+
+    res.json(groups);
+  } catch (err) {
+    res.status(500).json({ message: 'Error obteniendo grupos' });
+  }
+});
+
 // GET /api/matches/:id - obtener partido por ID
 router.get('/:id', auth, async (req, res) => {
   try {

@@ -18,8 +18,10 @@ export default function Navbar() {
   const navLinks = [
     { path: '/', label: 'Inicio' },
     { path: '/matches', label: 'Partidos' },
+    { path: '/groups', label: 'Grupos' },
+    { path: '/bracket', label: 'Llave' },
     { path: '/leaderboard', label: 'Ranking' },
-    { path: '/tournament', label: 'Torneo' },
+    { path: '/tournament', label: 'Campeón' },
     ...(isAdmin ? [{ path: '/admin', label: 'Admin' }] : [])
   ];
 
@@ -28,9 +30,8 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-2xl">⚽</span>
-            <span className="font-bold text-lg text-white">Prode <span className="text-yellow-400">2026</span></span>
+          <Link to="/" className="flex items-center">
+            <img src="/logo.png" alt="Prode 2026" className="h-10 w-auto object-contain" />
           </Link>
 
           {/* Desktop nav */}

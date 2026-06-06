@@ -11,7 +11,7 @@ const api = axios.create({
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
+    if (err.response?.status === 401 && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
       window.location.href = '/login';
     }
     return Promise.reject(err);
@@ -39,6 +39,13 @@ export const saveTournamentPrediction = (champion, topScorer) =>
 
 // Leaderboard
 export const getLeaderboard = () => api.get('/leaderboard');
+
+// Group standings & predictions
+export const getGroupStandings = () => api.get('/groups/standings');
+export const getGroupsInfo = () => api.get('/matches/groups-info');
+export const getGroupPredictions = () => api.get('/group-predictions');
+export const saveGroupPrediction = (group, first, second) =>
+  api.post(`/group-predictions/${group}`, { first, second });
 
 // Admin
 export const generateInvitationCodes = (count = 1) =>

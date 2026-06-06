@@ -58,9 +58,37 @@ function calculateTopScorerPoints(predicted, actual) {
   return predicted.toLowerCase().trim() === actual.toLowerCase().trim() ? 3 : 0;
 }
 
+/**
+ * Calcula puntos por predicción de clasificados de grupo.
+ * Sistema:
+ *   - 1° lugar exacto: 3 pts
+ *   - 2° lugar exacto: 2 pts
+ *   - Equipo clasificó pero en posición contraria: 1 pt c/u
+ * Máximo: 5 pts por grupo
+ */
+function calculateGroupPoints(predictedFirst, predictedSecond, actualFirst, actualSecond) {
+  if (!predictedFirst || !predictedSecond || !actualFirst || !actualSecond) return 0;
+
+  const pf = predictedFirst.toLowerCase().trim();
+  const ps = predictedSecond.toLowerCase().trim();
+  const af = actualFirst.toLowerCase().trim();
+  const as = actualSecond.toLowerCase().trim();
+
+  let points = 0;
+
+  if (pf === af) points += 3;
+  else if (pf === as) points += 1; // predijo 1° pero quedó 2°
+
+  if (ps === as) points += 2;
+  else if (ps === af) points += 1; // predijo 2° pero quedó 1°
+
+  return points;
+}
+
 module.exports = {
   calculateMatchPoints,
   calculateChampionPoints,
   calculateTopScorerPoints,
+  calculateGroupPoints,
   getResult
 };

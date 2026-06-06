@@ -26,8 +26,10 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/matches', require('./routes/matches'));
 app.use('/api/predictions', require('./routes/predictions'));
+app.use('/api/group-predictions', require('./routes/groupPredictions'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/groups', require('./routes/groups'));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
