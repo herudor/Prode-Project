@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   syncMatches, getAdminMatches, updateMatch, createMatch,
-  getUsers, toggleUser, setTournamentResult
+  getUsers, toggleUser, resetUserPassword, setTournamentResult
 } from '../services/api';
 
 function TabButton({ active, onClick, children }) {
@@ -14,108 +14,6 @@ function TabButton({ active, onClick, children }) {
     >
       {children}
     </button>
-  );
-}
-
-// --- Pestaña: Códigos de invitación ---
-function CodesTab() {
-  const [codes, setCodes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
-  const [count, setCount] = useState(1);
-  const [copied, setCopied] = useState('');
-
-  const load = async () => {
-    setLoading(true);
-    try { const res = await getInvitationCodes(); setCodes(res.data); }
-    catch (e) { console.error(e); } finally { setLoading(false); }
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const handleGenerate = async () => {
-    setGenerating(true);
-    try {
-      await generateInvitationCodes(count);
-      await load();
-    } catch (e) { console.error(e); } finally { setGenerating(false); }
-  };
-
-  const copyCode = (code) => {
-    navigator.clipboard.writeText(code);
-    setCopied(code);
-    setTimeout(() => setCopied(''), 2000);
-  };
-
-  return (
-    <div>
-      <div className="flex items-center gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <input
-            type="number" min="1" max="50" value={count}
-            onChange={e => setCount(Number(e.target.value))}
-            className="input-field w-20 text-center"
-          />
-          <button onClick={handleGenerate} disabled={generating} className="btn-primary">
-            {generating ? 'Generando...' : `Generar ${count} código${count > 1 ? 's' : ''}`}
-          </button>
-        </div>
-        <span className="text-sm text-gray-500">
-          {codes.filter(c => !c.used).length} disponibles / {codes.length} total
-        </span>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">
-                <th className="pb-2">Código</th>
-                <th className="pb-2">Estado</th>
-                <th className="pb-2">Usado por</th>
-                <th className="pb-2">Fecha</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800">
-              {codes.map(code => (
-                <tr key={code._id}>
-                  <td className="py-2 pr-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-yellow-400">{code.code}</span>
-                      {!code.used && (
-                        <button
-                          onClick={() => copyCode(code.code)}
-                          className="text-xs text-gray-500 hover:text-gray-300"
-                        >
-                          {copied === code.code ? '✓' : 'copiar'}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-2 pr-4">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      code.used ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
-                    }`}>
-                      {code.used ? 'Usado' : 'Disponible'}
-                    </span>
-                  </td>
-                  <td className="py-2 pr-4 text-gray-400">
-                    {code.usedBy?.name || '-'}
-                  </td>
-                  <td className="py-2 text-gray-500 text-xs">
-                    {new Date(code.createdAt).toLocaleDateString('es-AR')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -355,6 +253,9 @@ function UsersTab() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(null);
+  const [resetModal, setResetModal] = useState(null); // { id, name }
+  const [newPass, setNewPass] = useState('');
+  const [resetMsg, setResetMsg] = useState('');
 
   const load = () => {
     getUsers()
@@ -364,6 +265,15 @@ function UsersTab() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleReset = async () => {
+    if (!newPass || newPass.length < 6) return setResetMsg('Mínimo 6 caracteres');
+    try {
+      await resetUserPassword(resetModal.id, newPass);
+      setResetMsg('¡Contraseña reseteada!');
+      setTimeout(() => { setResetModal(null); setNewPass(''); setResetMsg(''); }, 1500);
+    } catch (e) { setResetMsg('Error al resetear'); }
+  };
 
   const handleToggle = async (id) => {
     setToggling(id);
@@ -390,10 +300,10 @@ function UsersTab() {
               <tr className="text-left text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">
                 <th className="pb-2">Nombre</th>
                 <th className="pb-2">Email</th>
+                <th className="pb-2">Sector</th>
                 <th className="pb-2">Rol</th>
                 <th className="pb-2">Estado</th>
-                <th className="pb-2">Registrado</th>
-                <th className="pb-2"></th>
+                <th className="pb-2">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -401,34 +311,40 @@ function UsersTab() {
                 const isActive = u.active !== false;
                 return (
                   <tr key={u._id} className={!isActive ? 'opacity-50' : ''}>
-                    <td className="py-2 pr-4 font-medium">{u.name}</td>
-                    <td className="py-2 pr-4 text-gray-400">{u.email}</td>
-                    <td className="py-2 pr-4">
+                    <td className="py-2 pr-3 font-medium text-sm">{u.name}</td>
+                    <td className="py-2 pr-3 text-gray-400 text-xs">{u.email}</td>
+                    <td className="py-2 pr-3 text-gray-400 text-xs">{u.sector || '-'}</td>
+                    <td className="py-2 pr-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
                         u.role === 'admin' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'
                       }`}>{u.role}</span>
                     </td>
-                    <td className="py-2 pr-4">
+                    <td className="py-2 pr-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
                         isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                       }`}>{isActive ? 'Activo' : 'Desactivado'}</span>
                     </td>
-                    <td className="py-2 pr-4 text-gray-500 text-xs">
-                      {new Date(u.createdAt).toLocaleDateString('es-AR')}
-                    </td>
                     <td className="py-2">
                       {u.role !== 'admin' && (
-                        <button
-                          onClick={() => handleToggle(u._id)}
-                          disabled={toggling === u._id}
-                          className={`text-xs px-3 py-1 rounded-lg border transition-colors ${
-                            isActive
-                              ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
-                              : 'border-green-500/30 text-green-400 hover:bg-green-500/10'
-                          }`}
-                        >
-                          {toggling === u._id ? '...' : isActive ? 'Desactivar' : 'Activar'}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => { setResetModal({ id: u._id, name: u.name }); setNewPass(''); setResetMsg(''); }}
+                            className="text-xs px-2 py-1 rounded-lg border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-colors"
+                          >
+                            Reset pass
+                          </button>
+                          <button
+                            onClick={() => handleToggle(u._id)}
+                            disabled={toggling === u._id}
+                            className={`text-xs px-2 py-1 rounded-lg border transition-colors ${
+                              isActive
+                                ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
+                                : 'border-green-500/30 text-green-400 hover:bg-green-500/10'
+                            }`}
+                          >
+                            {toggling === u._id ? '...' : isActive ? 'Desactivar' : 'Activar'}
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -436,6 +352,28 @@ function UsersTab() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modal reset password */}
+      {resetModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-sm w-full">
+            <h3 className="font-bold mb-1">Reset contraseña</h3>
+            <p className="text-sm text-gray-400 mb-4">{resetModal.name}</p>
+            <input
+              type="password"
+              value={newPass}
+              onChange={e => setNewPass(e.target.value)}
+              placeholder="Nueva contraseña (mín. 6 caracteres)"
+              className="input-field mb-3"
+            />
+            {resetMsg && <p className={`text-sm mb-3 ${resetMsg.includes('!') ? 'text-green-400' : 'text-red-400'}`}>{resetMsg}</p>}
+            <div className="flex gap-2">
+              <button onClick={handleReset} className="btn-primary flex-1">Confirmar</button>
+              <button onClick={() => setResetModal(null)} className="btn-secondary flex-1">Cancelar</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

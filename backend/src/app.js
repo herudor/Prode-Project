@@ -30,6 +30,7 @@ app.use('/api/group-predictions', require('./routes/groupPredictions'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/groups', require('./routes/groups'));
+app.use('/api/profile', require('./routes/profile'));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));

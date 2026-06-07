@@ -116,6 +116,21 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// POST /api/admin/users/:id/reset-password - resetear contraseña
+router.post('/users/:id/reset-password', async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) return res.status(400).json({ message: 'Contraseña debe tener al menos 6 caracteres' });
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    user.password = newPassword;
+    await user.save();
+    res.json({ message: 'Contraseña reseteada correctamente' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error reseteando contraseña' });
+  }
+});
+
 // PATCH /api/admin/users/:id/toggle - activar/desactivar usuario
 router.patch('/users/:id/toggle', async (req, res) => {
   try {

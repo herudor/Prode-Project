@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user'
   },
+  sector: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   active: {
     type: Boolean,
     default: true

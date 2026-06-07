@@ -53,7 +53,9 @@ export default function Navbar() {
 
           {/* User info */}
           <div className="hidden md:flex items-center gap-3">
-            <span className="text-sm text-gray-400">Hola, <span className="text-white font-medium">{user?.name}</span></span>
+            <Link to="/perfil" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Hola, <span className="text-white font-medium">{user?.name}</span>
+            </Link>
             <button onClick={handleLogout} className="btn-secondary text-sm py-1.5 px-3">
               Salir
             </button>

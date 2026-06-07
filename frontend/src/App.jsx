@@ -12,6 +12,7 @@ import Leaderboard from './pages/Leaderboard';
 import TournamentPredictions from './pages/TournamentPredictions';
 import GroupPredictions from './pages/GroupPredictions';
 import Bracket from './pages/Bracket';
+import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 
 function Layout({ children }) {
@@ -61,6 +62,11 @@ export default function App() {
           <Route path="/bracket" element={
             <ProtectedRoute>
               <Layout><Bracket /></Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/perfil" element={
+            <ProtectedRoute>
+              <Layout><Profile /></Layout>
             </ProtectedRoute>
           } />
           <Route path="/admin" element={

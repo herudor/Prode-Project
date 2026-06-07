@@ -14,20 +14,18 @@ const COOKIE_OPTIONS = {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, sector } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Todos los campos son requeridos' });
     }
 
-    // Verificar si el email ya existe
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'El email ya está registrado' });
     }
 
-    // Crear usuario
-    const user = await User.create({ name, email, password });
+    const user = await User.create({ name, email, password, sector: sector || '' });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 

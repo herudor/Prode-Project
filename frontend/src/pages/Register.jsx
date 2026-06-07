@@ -4,7 +4,7 @@ import { register as registerApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', sector: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -18,7 +18,7 @@ export default function Register() {
     if (form.password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres');
     setLoading(true);
     try {
-      const res = await registerApi(form.name, form.email, form.password);
+      const res = await registerApi(form.name, form.email, form.password, form.sector);
       login(res.data.user, res.data.token);
       navigate('/');
     } catch (err) {
@@ -53,6 +53,11 @@ export default function Register() {
               <label className="block text-sm text-gray-400 mb-1">Contraseña</label>
               <input type="password" name="password" value={form.password} onChange={handleChange}
                 placeholder="Mínimo 6 caracteres" className="input-field" required />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Sector <span className="text-gray-600">(opcional)</span></label>
+              <input type="text" name="sector" value={form.sector} onChange={handleChange}
+                placeholder="Ej: Producción, Calidad, RRHH..." className="input-field" />
             </div>
 
             {error && (
