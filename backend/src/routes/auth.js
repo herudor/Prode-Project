@@ -44,6 +44,7 @@ router.post('/register', async (req, res) => {
 
     res.cookie('token', token, COOKIE_OPTIONS);
     res.status(201).json({
+      token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {
@@ -75,6 +76,7 @@ router.post('/login', async (req, res) => {
 
     res.cookie('token', token, COOKIE_OPTIONS);
     res.json({
+      token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {

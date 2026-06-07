@@ -17,7 +17,7 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await loginApi(email, password);
-      login(res.data.user);
+      login(res.data.user, res.data.token);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Error al iniciar sesión');

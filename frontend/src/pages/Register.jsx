@@ -21,7 +21,7 @@ export default function Register() {
     setLoading(true);
     try {
       const res = await registerApi(form.name, form.email, form.password, form.invitationCode);
-      login(res.data.user);
+      login(res.data.user, res.data.token);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Error al registrarse');

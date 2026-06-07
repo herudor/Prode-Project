@@ -8,23 +8,22 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar sesión activa via cookie HttpOnly (no localStorage)
+    const token = localStorage.getItem('token');
+    if (!token) { setLoading(false); return; }
     getMe()
       .then(res => setUser(res.data.user))
-      .catch(() => setUser(null))
+      .catch(() => { localStorage.removeItem('token'); setUser(null); })
       .finally(() => setLoading(false));
   }, []);
 
-  const login = (userData) => {
+  const login = (userData, token) => {
+    if (token) localStorage.setItem('token', token);
     setUser(userData);
   };
 
   const logout = async () => {
-    try {
-      await apiLogout();
-    } catch (_) {
-      // Si falla el logout en el servidor igual limpiamos el estado local
-    }
+    try { await apiLogout(); } catch (_) {}
+    localStorage.removeItem('token');
     setUser(null);
   };
 

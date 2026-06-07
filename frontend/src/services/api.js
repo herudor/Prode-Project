@@ -4,7 +4,14 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true  // Enviar/recibir cookies HttpOnly automáticamente
+  withCredentials: true
+});
+
+// Interceptor: adjuntar token JWT desde localStorage en cada request
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
 // Interceptor: manejar 401
@@ -12,6 +19,7 @@ api.interceptors.response.use(
   res => res,
   err => {
     if (err.response?.status === 401 && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+      localStorage.removeItem('token');
       window.location.href = '/login';
     }
     return Promise.reject(err);
