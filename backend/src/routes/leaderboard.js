@@ -57,7 +57,7 @@ router.get('/', auth, async (req, res) => {
 
     // Obtener info de usuarios
     const userIds = Object.keys(pointsMap);
-    const users = await User.find({ _id: { $in: userIds } }).select('name email');
+    const users = await User.find({ _id: { $in: userIds }, active: { $ne: false } }).select('name email');
 
     const leaderboard = users.map(user => ({
       userId: user._id,

@@ -116,6 +116,20 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// PATCH /api/admin/users/:id/toggle - activar/desactivar usuario
+router.patch('/users/:id/toggle', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    if (user.role === 'admin') return res.status(400).json({ message: 'No se puede desactivar al admin' });
+    user.active = !user.active;
+    await user.save();
+    res.json({ message: `Usuario ${user.active ? 'activado' : 'desactivado'}`, active: user.active });
+  } catch (err) {
+    res.status(500).json({ message: 'Error actualizando usuario' });
+  }
+});
+
 // PUT /api/admin/tournament-result - definir campeón y goleador del torneo
 router.put('/tournament-result', async (req, res) => {
   try {

@@ -14,16 +14,10 @@ const COOKIE_OPTIONS = {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, invitationCode } = req.body;
+    const { name, email, password } = req.body;
 
-    if (!name || !email || !password || !invitationCode) {
+    if (!name || !email || !password) {
       return res.status(400).json({ message: 'Todos los campos son requeridos' });
-    }
-
-    // Verificar código de invitación
-    const code = await InvitationCode.findOne({ code: invitationCode, used: false });
-    if (!code) {
-      return res.status(400).json({ message: 'Código de invitación inválido o ya utilizado' });
     }
 
     // Verificar si el email ya existe
@@ -33,12 +27,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Crear usuario
-    const user = await User.create({ name, email, password, invitationCode });
-
-    // Marcar código como usado
-    code.used = true;
-    code.usedBy = user._id;
-    await code.save();
+    const user = await User.create({ name, email, password });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
@@ -65,6 +54,10 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
+    }
+
+    if (!user.active) {
+      return res.status(403).json({ message: 'Tu cuenta ha sido desactivada. Contactá al administrador.' });
     }
 
     const isMatch = await user.comparePassword(password);

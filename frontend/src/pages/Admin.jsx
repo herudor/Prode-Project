@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  getInvitationCodes, generateInvitationCodes,
   syncMatches, getAdminMatches, updateMatch, createMatch,
-  getUsers, setTournamentResult
+  getUsers, toggleUser, setTournamentResult
 } from '../services/api';
 
 function TabButton({ active, onClick, children }) {
@@ -355,20 +354,34 @@ function MatchesTab() {
 function UsersTab() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState(null);
 
-  useEffect(() => {
+  const load = () => {
     getUsers()
       .then(res => setUsers(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleToggle = async (id) => {
+    setToggling(id);
+    try {
+      await toggleUser(id);
+      setUsers(prev => prev.map(u => u._id === id ? { ...u, active: !u.active } : u));
+    } catch (e) { console.error(e); }
+    finally { setToggling(null); }
+  };
+
+  const activeCount = users.filter(u => u.active !== false).length;
 
   return (
     <div>
-      <p className="text-sm text-gray-500 mb-4">{users.length} usuario(s) registrado(s)</p>
+      <p className="text-sm text-gray-500 mb-4">{users.length} usuario(s) — {activeCount} activo(s)</p>
       {loading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -378,24 +391,49 @@ function UsersTab() {
                 <th className="pb-2">Nombre</th>
                 <th className="pb-2">Email</th>
                 <th className="pb-2">Rol</th>
+                <th className="pb-2">Estado</th>
                 <th className="pb-2">Registrado</th>
+                <th className="pb-2"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
-              {users.map(u => (
-                <tr key={u._id}>
-                  <td className="py-2 pr-4 font-medium">{u.name}</td>
-                  <td className="py-2 pr-4 text-gray-400">{u.email}</td>
-                  <td className="py-2 pr-4">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      u.role === 'admin' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'
-                    }`}>{u.role}</span>
-                  </td>
-                  <td className="py-2 text-gray-500 text-xs">
-                    {new Date(u.createdAt).toLocaleDateString('es-AR')}
-                  </td>
-                </tr>
-              ))}
+              {users.map(u => {
+                const isActive = u.active !== false;
+                return (
+                  <tr key={u._id} className={!isActive ? 'opacity-50' : ''}>
+                    <td className="py-2 pr-4 font-medium">{u.name}</td>
+                    <td className="py-2 pr-4 text-gray-400">{u.email}</td>
+                    <td className="py-2 pr-4">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        u.role === 'admin' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'
+                      }`}>{u.role}</span>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                      }`}>{isActive ? 'Activo' : 'Desactivado'}</span>
+                    </td>
+                    <td className="py-2 pr-4 text-gray-500 text-xs">
+                      {new Date(u.createdAt).toLocaleDateString('es-AR')}
+                    </td>
+                    <td className="py-2">
+                      {u.role !== 'admin' && (
+                        <button
+                          onClick={() => handleToggle(u._id)}
+                          disabled={toggling === u._id}
+                          className={`text-xs px-3 py-1 rounded-lg border transition-colors ${
+                            isActive
+                              ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
+                              : 'border-green-500/30 text-green-400 hover:bg-green-500/10'
+                          }`}
+                        >
+                          {toggling === u._id ? '...' : isActive ? 'Desactivar' : 'Activar'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -464,10 +502,9 @@ function TournamentTab() {
 
 // --- Componente principal Admin ---
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState('codes');
+  const [activeTab, setActiveTab] = useState('matches');
 
   const tabs = [
-    { id: 'codes', label: '🎫 Invitaciones' },
     { id: 'matches', label: '⚽ Partidos' },
     { id: 'users', label: '👥 Usuarios' },
     { id: 'tournament', label: '🏆 Torneo' }
@@ -490,7 +527,6 @@ export default function Admin() {
       </div>
 
       <div className="card">
-        {activeTab === 'codes' && <CodesTab />}
         {activeTab === 'matches' && <MatchesTab />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'tournament' && <TournamentTab />}

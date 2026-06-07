@@ -28,8 +28,8 @@ api.interceptors.response.use(
 
 // Auth
 export const login = (email, password) => api.post('/auth/login', { email, password });
-export const register = (name, email, password, invitationCode) =>
-  api.post('/auth/register', { name, email, password, invitationCode });
+export const register = (name, email, password) =>
+  api.post('/auth/register', { name, email, password });
 export const logout = () => api.post('/auth/logout');
 export const getMe = () => api.get('/auth/me');
 
@@ -64,6 +64,7 @@ export const updateMatch = (id, data) => api.put(`/admin/matches/${id}`, data);
 export const getAdminMatches = () => api.get('/admin/matches');
 export const createMatch = (data) => api.post('/admin/matches', data);
 export const getUsers = () => api.get('/admin/users');
+export const toggleUser = (id) => api.patch(`/admin/users/${id}/toggle`);
 export const setTournamentResult = (champion, topScorer) =>
   api.put('/admin/tournament-result', { champion, topScorer });
 
