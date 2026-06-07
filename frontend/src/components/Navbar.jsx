@@ -22,6 +22,7 @@ export default function Navbar() {
     { path: '/bracket', label: 'Eliminatorias' },
     { path: '/leaderboard', label: 'Ranking' },
     { path: '/tournament', label: 'Campeón' },
+    { path: '/perfil', label: 'Mi perfil' },
     ...(isAdmin ? [{ path: '/admin', label: 'Admin' }] : [])
   ];
 
@@ -94,6 +95,7 @@ export default function Navbar() {
               <span className="text-sm text-gray-400">{user?.name}</span>
               <button onClick={handleLogout} className="btn-secondary text-sm py-1 px-3">Salir</button>
             </div>
+
           </div>
         )}
       </div>
