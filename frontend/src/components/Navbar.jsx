@@ -19,7 +19,7 @@ export default function Navbar() {
     { path: '/', label: 'Inicio' },
     { path: '/matches', label: 'Partidos' },
     { path: '/groups', label: 'Grupos' },
-    { path: '/bracket', label: 'Llave' },
+    { path: '/bracket', label: 'Eliminatorias' },
     { path: '/leaderboard', label: 'Ranking' },
     { path: '/tournament', label: 'Campeón' },
     ...(isAdmin ? [{ path: '/admin', label: 'Admin' }] : [])
