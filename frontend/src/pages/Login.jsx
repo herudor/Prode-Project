@@ -31,9 +31,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">⚽</div>
-          <h1 className="text-3xl font-bold text-white">Prode <span className="text-yellow-400">2026</span></h1>
-          <p className="text-gray-400 mt-2">Mundial de Fútbol</p>
+          <img src="/logo.png" alt="Prode Motherson 2026" className="h-32 w-auto object-contain mx-auto" />
         </div>
 
         <div className="card">
