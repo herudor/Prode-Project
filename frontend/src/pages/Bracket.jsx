@@ -11,13 +11,14 @@ const CARD_W = 188;  // px — match card width
 const CONN_W = 28;   // px — connector column width
 const TOTAL_H = ROW_H * ROWS; // 768px
 
-// Timezone: Argentina UTC-3
+// Timezone: Argentina UTC-3, formato 24h para que no sea tan largo
 function formatDate(dateStr) {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleString('es-AR', {
     timeZone: 'America/Argentina/Buenos_Aires',
     day: 'numeric', month: 'short',
     hour: '2-digit', minute: '2-digit',
+    hour12: false,
   });
 }
 
