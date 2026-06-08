@@ -80,7 +80,7 @@ function MatchCard({ match, prediction, onPredict, dim = false }) {
       style={{ width: CARD_W, height: ROW_H - 8, margin: '4px 0', border: `1.5px solid ${borderColor}`, overflow: 'hidden' }}
     >
       {/* Date / status line */}
-      <div className="flex items-center justify-between px-2.5 pb-0.5">
+      <div className="flex items-center justify-between px-2.5 pt-1.5 pb-0.5">
         <span className="text-[10px] text-gray-600">{formatDate(match.date)}</span>
         {status === 'live' && <span className="text-[10px] font-bold text-green-400 animate-pulse">● VIVO</span>}
         {status === 'finished' && <span className="text-[10px] text-gray-600">Final</span>}
