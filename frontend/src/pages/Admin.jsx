@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   syncMatches, getAdminMatches, updateMatch, createMatch,
-  getUsers, toggleUser, resetUserPassword, setTournamentResult
+  getUsers, toggleUser, editUser, resetUserPassword, setTournamentResult
 } from '../services/api';
 
 function TabButton({ active, onClick, children }) {
@@ -253,9 +253,13 @@ function UsersTab() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(null);
-  const [resetModal, setResetModal] = useState(null); // { id, name }
+  const [resetModal, setResetModal] = useState(null);
   const [newPass, setNewPass] = useState('');
   const [resetMsg, setResetMsg] = useState('');
+  const [editModal, setEditModal] = useState(null); // { id, name, sector, email }
+  const [editForm, setEditFormU] = useState({ name: '', sector: '', email: '' });
+  const [editMsg, setEditMsg] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   const load = () => {
     getUsers()
@@ -265,6 +269,27 @@ function UsersTab() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const openEditModal = (u) => {
+    setEditModal(u);
+    setEditFormU({ name: u.name, sector: u.sector || '', email: u.email });
+    setEditMsg('');
+  };
+
+  const handleEditSaveUser = async () => {
+    if (!editForm.name.trim()) return setEditMsg('El nombre es requerido');
+    setEditSaving(true);
+    try {
+      const res = await editUser(editModal._id, editForm);
+      setUsers(prev => prev.map(u => u._id === editModal._id ? { ...u, ...res.data } : u));
+      setEditMsg('¡Guardado!');
+      setTimeout(() => { setEditModal(null); setEditMsg(''); }, 1200);
+    } catch (e) {
+      setEditMsg(e.response?.data?.message || 'Error guardando');
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   const handleReset = async () => {
     if (!newPass || newPass.length < 6) return setResetMsg('Mínimo 6 caracteres');
@@ -325,33 +350,75 @@ function UsersTab() {
                       }`}>{isActive ? 'Activo' : 'Desactivado'}</span>
                     </td>
                     <td className="py-2">
-                      {u.role !== 'admin' && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => { setResetModal({ id: u._id, name: u.name }); setNewPass(''); setResetMsg(''); }}
-                            className="text-xs px-2 py-1 rounded-lg border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-colors"
-                          >
-                            Reset pass
-                          </button>
-                          <button
-                            onClick={() => handleToggle(u._id)}
-                            disabled={toggling === u._id}
-                            className={`text-xs px-2 py-1 rounded-lg border transition-colors ${
-                              isActive
-                                ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
-                                : 'border-green-500/30 text-green-400 hover:bg-green-500/10'
-                            }`}
-                          >
-                            {toggling === u._id ? '...' : isActive ? 'Desactivar' : 'Activar'}
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => openEditModal(u)}
+                          className="text-xs px-2 py-1 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 transition-colors"
+                        >
+                          Editar
+                        </button>
+                        {u.role !== 'admin' && (
+                          <>
+                            <button
+                              onClick={() => { setResetModal({ id: u._id, name: u.name }); setNewPass(''); setResetMsg(''); }}
+                              className="text-xs px-2 py-1 rounded-lg border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-colors"
+                            >
+                              Reset pass
+                            </button>
+                            <button
+                              onClick={() => handleToggle(u._id)}
+                              disabled={toggling === u._id}
+                              className={`text-xs px-2 py-1 rounded-lg border transition-colors ${
+                                isActive
+                                  ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
+                                  : 'border-green-500/30 text-green-400 hover:bg-green-500/10'
+                              }`}
+                            >
+                              {toggling === u._id ? '...' : isActive ? 'Desactivar' : 'Activar'}
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modal editar usuario */}
+      {editModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-sm w-full space-y-3">
+            <h3 className="font-bold mb-1">Editar usuario</h3>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Nombre y Apellido</label>
+              <input type="text" value={editForm.name}
+                onChange={e => setEditFormU(p => ({ ...p, name: e.target.value }))}
+                className="input-field" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Sector</label>
+              <input type="text" value={editForm.sector}
+                onChange={e => setEditFormU(p => ({ ...p, sector: e.target.value }))}
+                placeholder="Ej: Producción, Calidad..." className="input-field" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Email</label>
+              <input type="email" value={editForm.email}
+                onChange={e => setEditFormU(p => ({ ...p, email: e.target.value }))}
+                className="input-field" />
+            </div>
+            {editMsg && <p className={`text-sm ${editMsg.includes('!') ? 'text-green-400' : 'text-red-400'}`}>{editMsg}</p>}
+            <div className="flex gap-2 pt-1">
+              <button onClick={handleEditSaveUser} disabled={editSaving} className="btn-primary flex-1">
+                {editSaving ? 'Guardando...' : 'Guardar'}
+              </button>
+              <button onClick={() => setEditModal(null)} className="btn-secondary flex-1">Cancelar</button>
+            </div>
+          </div>
         </div>
       )}
 

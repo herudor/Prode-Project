@@ -116,6 +116,23 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// PUT /api/admin/users/:id - editar datos de un usuario
+router.put('/users/:id', async (req, res) => {
+  try {
+    const { name, sector, email } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ message: 'El nombre es requerido' });
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { name: name.trim(), sector: (sector || '').trim(), ...(email ? { email: email.trim().toLowerCase() } : {}) },
+      { new: true }
+    ).select('-password');
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Error actualizando usuario' });
+  }
+});
+
 // POST /api/admin/users/:id/reset-password - resetear contraseña
 router.post('/users/:id/reset-password', async (req, res) => {
   try {

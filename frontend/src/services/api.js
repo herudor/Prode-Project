@@ -65,6 +65,7 @@ export const getAdminMatches = () => api.get('/admin/matches');
 export const createMatch = (data) => api.post('/admin/matches', data);
 export const getUsers = () => api.get('/admin/users');
 export const toggleUser = (id) => api.patch(`/admin/users/${id}/toggle`);
+export const editUser = (id, data) => api.put(`/admin/users/${id}`, data);
 export const resetUserPassword = (id, newPassword) => api.post(`/admin/users/${id}/reset-password`, { newPassword });
 
 // Profile

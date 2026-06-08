@@ -39,7 +39,7 @@ function ProfileForm() {
     <form onSubmit={handleSubmit} className="card space-y-4">
       <h2 className="font-bold text-lg mb-2">Mis datos</h2>
       <div>
-        <label className="block text-sm text-gray-400 mb-1">Nombre</label>
+        <label className="block text-sm text-gray-400 mb-1">Nombre y Apellido</label>
         <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
           className="input-field" required />
       </div>
