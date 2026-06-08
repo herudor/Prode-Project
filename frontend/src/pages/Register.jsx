@@ -40,9 +40,9 @@ export default function Register() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Nombre</label>
+              <label className="block text-sm text-gray-400 mb-1">Nombre y Apellido</label>
               <input type="text" name="name" value={form.name} onChange={handleChange}
-                placeholder="Tu nombre" className="input-field" required />
+                placeholder="Tu nombre y apellido" className="input-field" required />
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Email</label>
