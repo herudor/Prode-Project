@@ -54,6 +54,9 @@ export default function LeaderboardTable({ data, loading }) {
                     {entry.name}
                     {isMe && <span className="text-xs ml-2 text-primary-500/70">(tú)</span>}
                   </p>
+                  {entry.sector && (
+                    <p className="text-xs text-gray-500 mt-0.5">{entry.sector}</p>
+                  )}
                 </td>
                 <td className="py-3 pr-4 text-center text-gray-400">
                   {entry.totalPredictions}

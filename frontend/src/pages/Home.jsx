@@ -105,6 +105,7 @@ function RankingSection({ leaderboard, userId }) {
                       <span className={`font-medium text-sm ${isMe ? 'text-primary-400' : 'text-white'}`}>
                         {entry.name} {isMe && <span className="text-xs text-primary-500">(vos)</span>}
                       </span>
+                      {entry.sector && <p className="text-xs text-gray-500">{entry.sector}</p>}
                     </td>
                     <td className="py-2.5 px-3 text-center text-sm text-green-400">{entry.exactResults}</td>
                     <td className="py-2.5 px-3 text-center text-sm text-gray-400">{entry.totalPredictions}</td>
