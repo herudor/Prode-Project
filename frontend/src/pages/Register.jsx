@@ -4,7 +4,7 @@ import { register as registerApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', sector: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', sector: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -16,6 +16,7 @@ export default function Register() {
     e.preventDefault();
     setError('');
     if (form.password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres');
+    if (form.password !== form.confirmPassword) return setError('Las contraseñas no coinciden');
     setLoading(true);
     try {
       const res = await registerApi(form.name, form.email, form.password, form.sector);
@@ -55,9 +56,14 @@ export default function Register() {
                 placeholder="Mínimo 6 caracteres" className="input-field" required />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Sector <span className="text-gray-600">(opcional)</span></label>
+              <label className="block text-sm text-gray-400 mb-1">Repetir contraseña</label>
+              <input type="password" name="confirmPassword" value={form.confirmPassword} onChange={handleChange}
+                placeholder="Repetí tu contraseña" className="input-field" required />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Sector/Área</label>
               <input type="text" name="sector" value={form.sector} onChange={handleChange}
-                placeholder="Ej: Producción, Calidad, RRHH..." className="input-field" />
+                placeholder="Ensamble, Logística, Inyección, etc." className="input-field" />
             </div>
 
             {error && (
