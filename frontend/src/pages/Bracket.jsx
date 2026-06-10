@@ -67,10 +67,12 @@ function MatchCard({ match, prediction, onPredict, dim = false }) {
     );
   }
 
-  const status   = match.status || 'upcoming';
-  const homeWins = status === 'finished' && match.homeScore > match.awayScore;
-  const awayWins = status === 'finished' && match.awayScore > match.homeScore;
-  const isPred   = status === 'upcoming' && new Date(match.date) > new Date();
+  const status        = match.status || 'upcoming';
+  const homeWins      = status === 'finished' && match.homeScore > match.awayScore;
+  const awayWins      = status === 'finished' && match.awayScore > match.homeScore;
+  const teamsReady    = !isPlaceholder(match.homeTeam) && !isPlaceholder(match.awayTeam);
+  const isPred        = status === 'upcoming' && new Date(match.date) > new Date() && teamsReady;
+  const matchStarted  = status === 'live' || status === 'finished';
 
   const borderColor = status === 'live' ? '#22c55e' : status === 'finished' ? '#4b5563' : '#374151';
 
@@ -92,7 +94,10 @@ function MatchCard({ match, prediction, onPredict, dim = false }) {
       {/* Away */}
       <TeamRow name={match.awayTeam} label={match.awayTeamLabel} score={match.awayScore} isWinner={awayWins} status={status} />
 
-      {/* Predict button */}
+      {/* Footer: predecir / sin predicción / países no definidos */}
+      {!teamsReady && status === 'upcoming' && (
+        <p className="text-[10px] text-gray-700 text-center px-2 pb-1">Países aún no definidos</p>
+      )}
       {isPred && !prediction && (
         <button
           onClick={() => onPredict(match)}
@@ -108,6 +113,16 @@ function MatchCard({ match, prediction, onPredict, dim = false }) {
           </span>
           <button onClick={() => onPredict(match)} className="text-[10px] text-gray-600 hover:text-primary-400">Editar</button>
         </div>
+      )}
+      {matchStarted && prediction && (
+        <div className="px-2.5 pb-1">
+          <span className="text-[10px] text-gray-600">
+            Pred: <span className="text-primary-400">{prediction.homeScore}-{prediction.awayScore}</span>
+          </span>
+        </div>
+      )}
+      {matchStarted && !prediction && (
+        <p className="text-[10px] text-gray-600 text-center px-2 pb-1">Sin predicción</p>
       )}
     </div>
   );
