@@ -26,14 +26,15 @@ async function syncMatches() {
         const wasFinished = existing.status === 'finished';
         const update = {
           status: event.status,
-          homeScore: event.homeScore,
-          awayScore: event.awayScore,
           homeFlag: event.homeFlag || existing.homeFlag,
           awayFlag: event.awayFlag || existing.awayFlag,
           round: event.round || existing.round,
           homeTeamLabel: event.homeTeamLabel || existing.homeTeamLabel,
           awayTeamLabel: event.awayTeamLabel || existing.awayTeamLabel,
         };
+        // Solo actualizar scores si la API los provee (no sobreescribir con null)
+        if (event.homeScore !== null) update.homeScore = event.homeScore;
+        if (event.awayScore !== null) update.awayScore = event.awayScore;
         // Actualizar nombre de equipo en eliminatorias cuando ya se definió
         if (event.homeTeam && event.homeTeam !== 'TBD') update.homeTeam = event.homeTeam;
         if (event.awayTeam && event.awayTeam !== 'TBD') update.awayTeam = event.awayTeam;
