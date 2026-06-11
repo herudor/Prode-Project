@@ -32,6 +32,15 @@ export default function Matches() {
     loadData();
   }, []);
 
+  // Auto-refresh cada 60s si hay partidos en vivo
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const hasLive = matches.some(m => m.status === 'live');
+      if (hasLive) loadData();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [matches]);
+
   const loadData = async () => {
     setLoading(true);
     try {

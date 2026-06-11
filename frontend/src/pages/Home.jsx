@@ -183,6 +183,15 @@ export default function Home() {
 
   useEffect(() => { loadData(); }, []);
 
+  // Auto-refresh cada 60s si hay partidos en vivo
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const hasLive = upcomingMatches.some(m => m.status === 'live');
+      if (hasLive) loadData();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [upcomingMatches]);
+
   const loadData = async () => {
     setLoading(true);
     try {
