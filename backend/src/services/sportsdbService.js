@@ -45,7 +45,8 @@ function mapMatch(m) {
   const awayTeam = m.away_team_name_en || awayTeamLabel || 'TBD';
 
   const finished = String(m.finished).toUpperCase() === 'TRUE';
-  const inProgress = String(m.time_elapsed).toLowerCase() === 'inprogress';
+  const elapsed = String(m.time_elapsed || '').toLowerCase();
+  const inProgress = ['live', 'inprogress', 'ht', 'et', 'p'].includes(elapsed) || /^\d+$/.test(elapsed);
 
   let status = 'upcoming';
   if (finished) status = 'finished';
