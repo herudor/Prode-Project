@@ -24,6 +24,15 @@ const STATUS_LABELS = {
   finished: 'Finalizado'
 };
 
+function getLiveMinute(dateStr) {
+  const elapsed = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+  if (elapsed < 0) return '';
+  if (elapsed <= 45) return `${elapsed}'`;
+  if (elapsed <= 60) return 'HT';
+  const secondHalf = elapsed - 15;
+  return `${Math.min(90, secondHalf)}'`;
+}
+
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleString('es-AR', {
     timeZone: 'America/Argentina/Buenos_Aires',
@@ -60,7 +69,9 @@ export default function MatchCard({ match, prediction, onPredict }) {
           {match.group && <span className="text-xs text-gray-600">· {match.group}</span>}
         </div>
         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[match.status]}`}>
-          {STATUS_LABELS[match.status]}
+          {match.status === 'live'
+            ? `● EN VIVO ${getLiveMinute(match.date)}`
+            : STATUS_LABELS[match.status]}
         </span>
       </div>
 

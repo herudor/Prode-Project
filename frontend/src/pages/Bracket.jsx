@@ -11,6 +11,14 @@ const CARD_W = 188;  // px — match card width
 const CONN_W = 28;   // px — connector column width
 const TOTAL_H = ROW_H * ROWS; // 768px
 
+function getLiveMinute(dateStr) {
+  const elapsed = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+  if (elapsed < 0) return '';
+  if (elapsed <= 45) return `${elapsed}'`;
+  if (elapsed <= 60) return 'HT';
+  return `${Math.min(90, elapsed - 15)}'`;
+}
+
 // Timezone: Argentina UTC-3, formato 24h para que no sea tan largo
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -84,7 +92,7 @@ function MatchCard({ match, prediction, onPredict, dim = false }) {
       {/* Date / status line */}
       <div className="flex items-center justify-between px-2.5 pt-1.5 pb-0.5">
         <span className="text-[10px] text-gray-600">{formatDate(match.date)}</span>
-        {status === 'live' && <span className="text-[10px] font-bold text-green-400 animate-pulse">● VIVO</span>}
+        {status === 'live' && <span className="text-[10px] font-bold text-green-400 animate-pulse">● {getLiveMinute(match.date) || 'VIVO'}</span>}
         {status === 'finished' && <span className="text-[10px] text-gray-600">Final</span>}
       </div>
 

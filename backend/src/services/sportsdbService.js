@@ -52,6 +52,9 @@ function mapMatch(m) {
   if (finished) status = 'finished';
   else if (inProgress) status = 'live';
 
+  // Mostrar marcador cuando está en vivo o finalizado
+  const showScore = finished || inProgress;
+
   return {
     externalId: `wc26_${m.id}`,
     homeTeam,
@@ -62,8 +65,8 @@ function mapMatch(m) {
     awayFlag: null,
     date: parseDate(m.local_date, m.stadium_id),
     status,
-    homeScore: finished ? parseInt(m.home_score || '0', 10) : null,
-    awayScore: finished ? parseInt(m.away_score || '0', 10) : null,
+    homeScore: showScore ? parseInt(m.home_score || '0', 10) : null,
+    awayScore: showScore ? parseInt(m.away_score || '0', 10) : null,
     phase: mapPhase(m.type),
     group: m.group || null,
     round: m.matchday ? String(m.matchday) : null
