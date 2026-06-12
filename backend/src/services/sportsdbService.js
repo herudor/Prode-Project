@@ -47,12 +47,15 @@ function mapMatch(m) {
   const finished = String(m.finished).toUpperCase() === 'TRUE';
   const elapsed = String(m.time_elapsed || '').toLowerCase();
   const inProgress = ['live', 'inprogress', 'ht', 'et', 'p'].includes(elapsed) || /^\d+$/.test(elapsed);
+  const matchDate = parseDate(m.local_date, m.stadium_id);
+  // Si ya pasó la hora de inicio y la API aún no actualizó, forzar live
+  const datePassed = matchDate <= new Date();
 
   let status = 'upcoming';
   if (finished) status = 'finished';
-  else if (inProgress) status = 'live';
+  else if (inProgress || datePassed) status = 'live';
 
-  // Mostrar marcador cuando está en vivo o finalizado
+  // Mostrar marcador solo cuando la API lo confirma (evita mostrar 0-0 falso)
   const showScore = finished || inProgress;
 
   return {
