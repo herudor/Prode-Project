@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   syncMatches, getAdminMatches, updateMatch, createMatch,
-  getUsers, toggleUser, editUser, resetUserPassword, setTournamentResult
+  getUsers, toggleUser, editUser, resetUserPassword, setTournamentResult,
+  getPredictionsSummary
 } from '../services/api';
 
 function TabButton({ active, onClick, children }) {
@@ -447,6 +448,93 @@ function UsersTab() {
   );
 }
 
+// --- Pestaña: Predicciones ---
+const POINTS_COLOR = { 3: 'text-green-400', 2: 'text-blue-400', 1: 'text-yellow-400', 0: 'text-red-400' };
+const PHASE_LABEL = { group: 'Grupo', round_of_32: 'R32', round_of_16: 'Octavos', quarter: 'Cuartos', semi: 'Semis', third: '3er Puesto', final: 'Final' };
+
+function PredictionsTab() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(null); // match _id abierto
+
+  useEffect(() => {
+    getPredictionsSummary()
+      .then(res => setData(res.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" /></div>;
+
+  if (!data.length) return <p className="text-gray-500 text-sm text-center py-8">No hay partidos finalizados todavía</p>;
+
+  return (
+    <div className="space-y-3">
+      {data.map(({ match, predictions, totalPredictions, noPrediction }) => (
+        <div key={match._id} className="border border-gray-800 rounded-xl overflow-hidden">
+          {/* Header del partido */}
+          <button
+            onClick={() => setOpen(open === match._id ? null : match._id)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-gray-800/50 hover:bg-gray-800 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded">
+                {PHASE_LABEL[match.phase] || match.phase} {match.group ? `· Grupo ${match.group}` : ''}
+              </span>
+              <span className="font-medium text-white text-sm">
+                {match.homeTeam} <span className="text-yellow-400 font-bold">{match.homeScore}-{match.awayScore}</span> {match.awayTeam}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500">{totalPredictions} predicciones</span>
+              <span className="text-gray-500 text-xs">{open === match._id ? '▲' : '▼'}</span>
+            </div>
+          </button>
+
+          {/* Tabla de predicciones */}
+          {open === match._id && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-gray-500 border-b border-gray-800">
+                    <th className="py-2 pl-4 pr-2 text-left">Usuario</th>
+                    <th className="py-2 px-2 text-left text-gray-600">Sector</th>
+                    <th className="py-2 px-2 text-center">Predicción</th>
+                    <th className="py-2 pr-4 pl-2 text-center">Pts</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800/50">
+                  {predictions.map((p, i) => (
+                    <tr key={i} className="hover:bg-gray-800/30">
+                      <td className="py-2 pl-4 pr-2 font-medium">{p.user.name}</td>
+                      <td className="py-2 px-2 text-gray-500 text-xs">{p.user.sector || '-'}</td>
+                      <td className="py-2 px-2 text-center">
+                        <span className="font-mono">{p.homeScore}-{p.awayScore}</span>
+                      </td>
+                      <td className="py-2 pr-4 pl-2 text-center font-bold">
+                        <span className={POINTS_COLOR[p.points] || 'text-gray-500'}>
+                          {p.points ?? '-'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {noPrediction.length > 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-2 pl-4 text-xs text-gray-600">
+                        Sin predicción: {noPrediction.join(', ')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // --- Pestaña: Resultados del torneo ---
 function TournamentTab() {
   const [form, setForm] = useState({ champion: '', topScorer: '' });
@@ -511,6 +599,7 @@ export default function Admin() {
 
   const tabs = [
     { id: 'matches', label: '⚽ Partidos' },
+    { id: 'predictions', label: '🎯 Predicciones' },
     { id: 'users', label: '👥 Usuarios' },
     { id: 'tournament', label: '🏆 Torneo' }
   ];
@@ -533,6 +622,7 @@ export default function Admin() {
 
       <div className="card">
         {activeTab === 'matches' && <MatchesTab />}
+        {activeTab === 'predictions' && <PredictionsTab />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'tournament' && <TournamentTab />}
       </div>

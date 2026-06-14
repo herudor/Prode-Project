@@ -162,6 +162,45 @@ router.patch('/users/:id/toggle', async (req, res) => {
   }
 });
 
+// GET /api/admin/predictions-summary - predicciones de partidos finalizados
+router.get('/predictions-summary', async (req, res) => {
+  try {
+    const finishedMatches = await Match.find({ status: 'finished' }).sort({ date: -1 }).lean();
+    const users = await User.find({ active: { $ne: false } }).select('name sector').lean();
+    const userMap = {};
+    users.forEach(u => { userMap[u._id.toString()] = u; });
+
+    const result = await Promise.all(finishedMatches.map(async (match) => {
+      const preds = await Prediction.find({ matchId: match._id }).lean();
+      return {
+        match: {
+          _id: match._id,
+          homeTeam: match.homeTeam,
+          awayTeam: match.awayTeam,
+          homeScore: match.homeScore,
+          awayScore: match.awayScore,
+          date: match.date,
+          phase: match.phase,
+          group: match.group
+        },
+        predictions: preds.map(p => ({
+          user: userMap[p.userId.toString()] || { name: 'Usuario eliminado', sector: '' },
+          homeScore: p.homeScore,
+          awayScore: p.awayScore,
+          points: p.points
+        })).sort((a, b) => (b.points ?? -1) - (a.points ?? -1)),
+        totalPredictions: preds.length,
+        noPrediction: users.filter(u => !preds.find(p => p.userId.toString() === u._id.toString())).map(u => u.name)
+      };
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error obteniendo predicciones' });
+  }
+});
+
 // PUT /api/admin/tournament-result - definir campeón y goleador del torneo
 router.put('/tournament-result', async (req, res) => {
   try {
