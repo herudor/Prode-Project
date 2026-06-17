@@ -54,17 +54,19 @@ async function syncMatches() {
 }
 
 /**
- * Calcula los puntos de todas las predicciones para un partido finalizado
+ * Calcula los puntos de todas las predicciones para un partido finalizado.
+ * forceRecalc=true recalcula incluso predicciones que ya tenían puntos (ej: corrección de score).
  */
-async function calculatePredictionPoints(matchId, realHome, realAway) {
+async function calculatePredictionPoints(matchId, realHome, realAway, forceRecalc = false) {
   try {
-    const predictions = await Prediction.find({ matchId, points: null });
+    const query = forceRecalc ? { matchId } : { matchId, points: null };
+    const predictions = await Prediction.find(query);
     for (const pred of predictions) {
       const points = calculateMatchPoints(pred.homeScore, pred.awayScore, realHome, realAway);
       pred.points = points;
       await pred.save();
     }
-    console.log(`[SyncJob] Puntos calculados para ${predictions.length} predicciones del partido ${matchId}`);
+    console.log(`[SyncJob] Puntos calculados para ${predictions.length} predicciones del partido ${matchId}${forceRecalc ? ' (recálculo forzado)' : ''}`);
   } catch (err) {
     console.error('[SyncJob] Error calculando puntos:', err.message);
   }

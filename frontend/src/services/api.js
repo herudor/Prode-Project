@@ -75,5 +75,6 @@ export const changePassword = (currentPassword, newPassword) => api.put('/profil
 export const setTournamentResult = (champion, topScorer) =>
   api.put('/admin/tournament-result', { champion, topScorer });
 export const getPredictionsSummary = () => api.get('/admin/predictions-summary');
+export const recalculateMatch = (id) => api.post(`/admin/recalculate/${id}`);
 
 export default api;

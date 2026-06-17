@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   syncMatches, getAdminMatches, updateMatch, createMatch,
   getUsers, toggleUser, editUser, resetUserPassword, setTournamentResult,
-  getPredictionsSummary
+  getPredictionsSummary, recalculateMatch
 } from '../services/api';
 
 function TabButton({ active, onClick, children }) {
@@ -30,6 +30,7 @@ function MatchesTab() {
     homeTeam: '', awayTeam: '', date: '', phase: 'group', group: '', status: 'upcoming'
   });
   const [message, setMessage] = useState('');
+  const [recalculating, setRecalculating] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -86,6 +87,22 @@ function MatchesTab() {
       awayScore: match.awayScore ?? '',
       status: match.status
     });
+    setMessage('');
+  };
+
+  const handleRecalculate = async () => {
+    if (!editing) return;
+    setRecalculating(true);
+    try {
+      const res = await recalculateMatch(editing._id);
+      setMessage(res.data.message || 'Puntos recalculados');
+      await load();
+      setEditing(null);
+    } catch (e) {
+      setMessage('Error recalculando puntos');
+    } finally {
+      setRecalculating(false);
+    }
   };
 
   return (
@@ -242,6 +259,18 @@ function MatchesTab() {
               <button onClick={handleEditSave} className="btn-primary flex-1">Guardar</button>
               <button onClick={() => setEditing(null)} className="btn-secondary flex-1">Cancelar</button>
             </div>
+            {editing.status === 'finished' && editing.homeScore !== null && (
+              <div className="mt-3 pt-3 border-t border-gray-700">
+                <button
+                  onClick={handleRecalculate}
+                  disabled={recalculating}
+                  className="w-full text-xs bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600/30 border border-yellow-600/30 rounded-lg py-2 transition-colors"
+                >
+                  {recalculating ? 'Recalculando...' : '⚡ Recalcular puntos de predicciones'}
+                </button>
+                <p className="text-xs text-gray-500 mt-1 text-center">Forzar recálculo si el score fue corregido</p>
+              </div>
+            )}
           </div>
         </div>
       )}

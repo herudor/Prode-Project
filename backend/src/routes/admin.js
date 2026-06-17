@@ -65,6 +65,8 @@ router.put('/matches/:id', async (req, res) => {
     if (!match) return res.status(404).json({ message: 'Partido no encontrado' });
 
     const wasFinished = match.status === 'finished';
+    const prevHome = match.homeScore;
+    const prevAway = match.awayScore;
 
     if (homeScore !== undefined) match.homeScore = homeScore;
     if (awayScore !== undefined) match.awayScore = awayScore;
@@ -72,16 +74,34 @@ router.put('/matches/:id', async (req, res) => {
 
     await match.save();
 
-    // Si se marcó como finished y tiene resultados, calcular puntos
-    if (!wasFinished && match.status === 'finished' &&
-        match.homeScore !== null && match.awayScore !== null) {
-      await calculatePredictionPoints(match._id, match.homeScore, match.awayScore);
+    if (match.status === 'finished' && match.homeScore !== null && match.awayScore !== null) {
+      const scoreChanged = homeScore !== undefined && awayScore !== undefined &&
+        (prevHome !== homeScore || prevAway !== awayScore);
+      // Si ya estaba finalizado y cambió el score → forzar recálculo total
+      // Si recién se marca como finalizado → calcular solo las que no tienen puntos
+      await calculatePredictionPoints(match._id, match.homeScore, match.awayScore, wasFinished && scoreChanged);
     }
 
     res.json(match);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error actualizando partido' });
+  }
+});
+
+// POST /api/admin/recalculate/:id - forzar recálculo de puntos de un partido finalizado
+router.post('/recalculate/:id', async (req, res) => {
+  try {
+    const match = await Match.findById(req.params.id);
+    if (!match) return res.status(404).json({ message: 'Partido no encontrado' });
+    if (match.status !== 'finished' || match.homeScore === null || match.awayScore === null) {
+      return res.status(400).json({ message: 'El partido no está finalizado o no tiene resultado' });
+    }
+    await calculatePredictionPoints(match._id, match.homeScore, match.awayScore, true);
+    res.json({ message: `Puntos recalculados para ${match.homeTeam} vs ${match.awayTeam} (${match.homeScore}-${match.awayScore})` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error recalculando puntos' });
   }
 });
 
