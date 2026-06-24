@@ -43,6 +43,59 @@ function calculateMatchPoints(predHome, predAway, realHome, realAway) {
 }
 
 /**
+ * Fases donde hay penales si hay empate al 90'
+ */
+const KNOCKOUT_PHASES = ['round_of_32', 'round_of_16', 'quarter', 'semi', 'third', 'final'];
+
+function isKnockout(phase) {
+  return KNOCKOUT_PHASES.includes(phase);
+}
+
+/**
+ * Calcula puntos para partidos de eliminatorias (penales incluidos).
+ * predPenalty / realPenalty: 'home' | 'away' | null
+ *
+ * Sistema:
+ *   - Exacto al 90' + penales correctos (o no hubo penales): 3 pts
+ *   - Exacto al 90' pero penales mal: 2 pts
+ *   - Misma diferencia de goles al 90' (solo si no es empate): 2 pts
+ *   - Ganador final correcto (contando penales): 1 pt
+ *   - Resto: 0 pts
+ */
+function calculateKnockoutPoints(predHome, predAway, predPenalty, realHome, realAway, realPenalty) {
+  const realDrawAt90 = realHome === realAway;
+  const predDrawAt90 = predHome === predAway;
+
+  // Ganador final real (considerando penales si hubo empate al 90')
+  const realWinner = realDrawAt90 ? realPenalty : getResult(realHome, realAway);
+  // Ganador final predicho
+  const predWinner = predDrawAt90 ? predPenalty : getResult(predHome, predAway);
+
+  // Exacto al 90'
+  if (predHome === realHome && predAway === realAway) {
+    if (realDrawAt90) {
+      // Empate al 90': exacto + penales correctos = 3, penales mal = 2
+      return predPenalty === realPenalty ? 3 : 2;
+    }
+    return 3;
+  }
+
+  // Misma diferencia de goles (solo partidos que no terminan en empate al 90')
+  const predDiff = predHome - predAway;
+  const realDiff = realHome - realAway;
+  if (!realDrawAt90 && predDiff === realDiff && predDiff !== 0) {
+    return 2;
+  }
+
+  // Ganador final correcto
+  if (predWinner && realWinner && predWinner === realWinner) {
+    return 1;
+  }
+
+  return 0;
+}
+
+/**
  * Calcula puntos por campeón acertado
  */
 function calculateChampionPoints(predicted, actual) {
@@ -87,8 +140,10 @@ function calculateGroupPoints(predictedFirst, predictedSecond, actualFirst, actu
 
 module.exports = {
   calculateMatchPoints,
+  calculateKnockoutPoints,
   calculateChampionPoints,
   calculateTopScorerPoints,
   calculateGroupPoints,
+  isKnockout,
   getResult
 };

@@ -4,7 +4,7 @@ const Prediction = require('../models/Prediction');
 const Match = require('../models/Match');
 const TournamentPrediction = require('../models/TournamentPrediction');
 const auth = require('../middleware/auth');
-const { calculateMatchPoints } = require('../utils/scoring');
+const { calculateMatchPoints, calculateKnockoutPoints, isKnockout } = require('../utils/scoring');
 
 // GET /api/predictions - obtener predicciones del usuario logueado
 router.get('/', auth, async (req, res) => {
@@ -21,32 +21,38 @@ router.get('/', auth, async (req, res) => {
 // POST /api/predictions/:matchId - crear o actualizar predicción
 router.post('/:matchId', auth, async (req, res) => {
   try {
-    const { homeScore, awayScore } = req.body;
+    const { homeScore, awayScore, penaltyWinner } = req.body;
     const { matchId } = req.params;
 
     if (homeScore === undefined || awayScore === undefined) {
       return res.status(400).json({ message: 'homeScore y awayScore son requeridos' });
     }
 
-    // Verificar que el partido existe
     const match = await Match.findById(matchId);
     if (!match) return res.status(404).json({ message: 'Partido no encontrado' });
 
-    // Bloquear si el partido ya comenzó
     if (match.date <= new Date() || match.status !== 'upcoming') {
       return res.status(400).json({ message: 'No se puede predecir: el partido ya comenzó o finalizó' });
     }
 
-    // Crear o actualizar predicción
+    // En eliminatorias con empate, penaltyWinner es obligatorio
+    const knockout = isKnockout(match.phase);
+    if (knockout && homeScore === awayScore && !penaltyWinner) {
+      return res.status(400).json({ message: 'En eliminatorias con empate debés indicar quién gana en penales' });
+    }
+    // En grupos o resultados no empatados, penaltyWinner no aplica
+    const finalPenalty = (knockout && homeScore === awayScore) ? penaltyWinner : null;
+
     const prediction = await Prediction.findOneAndUpdate(
       { userId: req.user._id, matchId },
-      { homeScore, awayScore, points: null },
+      { homeScore, awayScore, penaltyWinner: finalPenalty, points: null },
       { upsert: true, new: true }
     );
 
-    // Si el partido ya finalizó (admin actualizó manual), calcular puntos
     if (match.status === 'finished' && match.homeScore !== null) {
-      prediction.points = calculateMatchPoints(homeScore, awayScore, match.homeScore, match.awayScore);
+      prediction.points = knockout
+        ? calculateKnockoutPoints(homeScore, awayScore, finalPenalty, match.homeScore, match.awayScore, match.penaltyWinner)
+        : calculateMatchPoints(homeScore, awayScore, match.homeScore, match.awayScore);
       await prediction.save();
     }
 

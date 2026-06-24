@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 
 const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
-export default function LeaderboardTable({ data, loading }) {
+export default function LeaderboardTable({ data, loading, highlightSearch }) {
   const { user } = useAuth();
 
   if (loading) {
@@ -17,10 +17,25 @@ export default function LeaderboardTable({ data, loading }) {
   if (!data?.length) {
     return (
       <div className="text-center py-12 text-gray-500">
-        <p className="text-4xl mb-3">📊</p>
-        <p>No hay datos de ranking todavía.</p>
-        <p className="text-sm mt-1">Los puntos se calculan cuando los partidos finalizan.</p>
+        <p className="text-4xl mb-3">{highlightSearch ? '🔍' : '📊'}</p>
+        <p>{highlightSearch ? `Sin resultados para "${highlightSearch}"` : 'No hay datos de ranking todavía.'}</p>
+        {!highlightSearch && <p className="text-sm mt-1">Los puntos se calculan cuando los partidos finalizan.</p>}
       </div>
+    );
+  }
+
+  function highlight(text) {
+    if (!highlightSearch || !text) return text;
+    const idx = text.toLowerCase().indexOf(highlightSearch.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <mark className="bg-primary-500/30 text-primary-300 rounded px-0.5">
+          {text.slice(idx, idx + highlightSearch.length)}
+        </mark>
+        {text.slice(idx + highlightSearch.length)}
+      </>
     );
   }
 
@@ -51,11 +66,11 @@ export default function LeaderboardTable({ data, loading }) {
                 </td>
                 <td className="py-3 pr-4">
                   <p className={`font-medium ${isMe ? 'text-primary-400' : 'text-white'}`}>
-                    {entry.name}
+                    {highlight(entry.name)}
                     {isMe && <span className="text-xs ml-2 text-primary-500/70">(tú)</span>}
                   </p>
                   {entry.sector && (
-                    <p className="text-xs text-gray-500 mt-0.5">{entry.sector}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{highlight(entry.sector)}</p>
                   )}
                 </td>
                 <td className="py-3 pr-4 text-center text-gray-400">

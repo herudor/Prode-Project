@@ -21,6 +21,11 @@ const predictionSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  penaltyWinner: {
+    type: String,
+    enum: ['home', 'away', null],
+    default: null
+  },
   points: {
     type: Number,
     default: null

@@ -60,26 +60,29 @@ router.post('/sync', async (req, res) => {
 // PUT /api/admin/matches/:id - actualizar resultado de un partido manualmente
 router.put('/matches/:id', async (req, res) => {
   try {
-    const { homeScore, awayScore, status } = req.body;
+    const { homeScore, awayScore, status, penaltyWinner } = req.body;
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ message: 'Partido no encontrado' });
 
     const wasFinished = match.status === 'finished';
     const prevHome = match.homeScore;
     const prevAway = match.awayScore;
+    const prevPenalty = match.penaltyWinner;
 
     if (homeScore !== undefined) match.homeScore = homeScore;
     if (awayScore !== undefined) match.awayScore = awayScore;
     if (status) match.status = status;
+    // penaltyWinner: solo aplica si es empate al 90' en eliminatorias; null borra el valor
+    if (penaltyWinner !== undefined) match.penaltyWinner = penaltyWinner || null;
 
     await match.save();
 
     if (match.status === 'finished' && match.homeScore !== null && match.awayScore !== null) {
       const scoreChanged = homeScore !== undefined && awayScore !== undefined &&
         (prevHome !== homeScore || prevAway !== awayScore);
-      // Si ya estaba finalizado y cambió el score → forzar recálculo total
-      // Si recién se marca como finalizado → calcular solo las que no tienen puntos
-      await calculatePredictionPoints(match._id, match.homeScore, match.awayScore, wasFinished && scoreChanged);
+      const penaltyChanged = penaltyWinner !== undefined && prevPenalty !== (penaltyWinner || null);
+      const forceRecalc = wasFinished && (scoreChanged || penaltyChanged);
+      await calculatePredictionPoints(match._id, match.homeScore, match.awayScore, forceRecalc);
     }
 
     res.json(match);

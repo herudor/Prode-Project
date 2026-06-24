@@ -24,7 +24,7 @@ function MatchesTab() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [editForm, setEditForm] = useState({ homeScore: '', awayScore: '', status: '' });
+  const [editForm, setEditForm] = useState({ homeScore: '', awayScore: '', status: '', penaltyWinner: '' });
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState({
     homeTeam: '', awayTeam: '', date: '', phase: 'group', group: '', status: 'upcoming'
@@ -61,6 +61,7 @@ function MatchesTab() {
       if (editForm.homeScore !== '') data.homeScore = parseInt(editForm.homeScore);
       if (editForm.awayScore !== '') data.awayScore = parseInt(editForm.awayScore);
       if (editForm.status) data.status = editForm.status;
+      if (editForm.penaltyWinner !== undefined) data.penaltyWinner = editForm.penaltyWinner || null;
       await updateMatch(editing._id, data);
       await load();
       setEditing(null);
@@ -80,12 +81,15 @@ function MatchesTab() {
     }
   };
 
+  const KNOCKOUT_PHASES = ['round_of_32', 'round_of_16', 'quarter', 'semi', 'third', 'final'];
+
   const startEdit = (match) => {
     setEditing(match);
     setEditForm({
       homeScore: match.homeScore ?? '',
       awayScore: match.awayScore ?? '',
-      status: match.status
+      status: match.status,
+      penaltyWinner: match.penaltyWinner || ''
     });
     setMessage('');
   };
@@ -254,6 +258,23 @@ function MatchesTab() {
                   <option value="finished">finished</option>
                 </select>
               </div>
+              {/* Penales: solo en eliminatorias con empate al 90' */}
+              {KNOCKOUT_PHASES.includes(editing.phase) &&
+               editForm.homeScore !== '' && editForm.awayScore !== '' &&
+               parseInt(editForm.homeScore) === parseInt(editForm.awayScore) && (
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Ganador en penales</label>
+                  <select
+                    value={editForm.penaltyWinner}
+                    onChange={e => setEditForm(p => ({ ...p, penaltyWinner: e.target.value }))}
+                    className="input-field"
+                  >
+                    <option value="">-- Sin definir --</option>
+                    <option value="home">{editing.homeTeam}</option>
+                    <option value="away">{editing.awayTeam}</option>
+                  </select>
+                </div>
+              )}
             </div>
             <div className="flex gap-2 mt-4">
               <button onClick={handleEditSave} className="btn-primary flex-1">Guardar</button>

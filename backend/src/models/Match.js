@@ -43,6 +43,11 @@ const matchSchema = new mongoose.Schema({
     type: Number,
     default: null
   },
+  penaltyWinner: {
+    type: String,
+    enum: ['home', 'away', null],
+    default: null
+  },
   round: String
 }, { timestamps: true });
 

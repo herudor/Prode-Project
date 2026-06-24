@@ -39,8 +39,8 @@ export const getMatch = (id) => api.get(`/matches/${id}`);
 
 // Predictions
 export const getPredictions = () => api.get('/predictions');
-export const savePrediction = (matchId, homeScore, awayScore) =>
-  api.post(`/predictions/${matchId}`, { homeScore, awayScore });
+export const savePrediction = (matchId, homeScore, awayScore, penaltyWinner = null) =>
+  api.post(`/predictions/${matchId}`, { homeScore, awayScore, penaltyWinner });
 export const getTournamentPrediction = () => api.get('/predictions/tournament/me');
 export const saveTournamentPrediction = (champion, topScorer) =>
   api.post('/predictions/tournament/save', { champion, topScorer });

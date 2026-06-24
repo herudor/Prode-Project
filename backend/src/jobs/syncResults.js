@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const Match = require('../models/Match');
 const Prediction = require('../models/Prediction');
 const { getSeasonMatches } = require('../services/sportsdbService');
-const { calculateMatchPoints } = require('../utils/scoring');
+const { calculateMatchPoints, calculateKnockoutPoints, isKnockout } = require('../utils/scoring');
 
 /**
  * Sincroniza/actualiza partidos en la BD desde TheSportsDB
@@ -59,10 +59,16 @@ async function syncMatches() {
  */
 async function calculatePredictionPoints(matchId, realHome, realAway, forceRecalc = false) {
   try {
+    const match = await Match.findById(matchId);
+    const knockout = match && isKnockout(match.phase);
+    const realPenalty = match ? match.penaltyWinner : null;
+
     const query = forceRecalc ? { matchId } : { matchId, points: null };
     const predictions = await Prediction.find(query);
     for (const pred of predictions) {
-      const points = calculateMatchPoints(pred.homeScore, pred.awayScore, realHome, realAway);
+      const points = knockout
+        ? calculateKnockoutPoints(pred.homeScore, pred.awayScore, pred.penaltyWinner, realHome, realAway, realPenalty)
+        : calculateMatchPoints(pred.homeScore, pred.awayScore, realHome, realAway);
       pred.points = points;
       await pred.save();
     }

@@ -6,6 +6,7 @@ export default function Leaderboard() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     getLeaderboard()
@@ -13,6 +14,13 @@ export default function Leaderboard() {
       .catch(() => setError('Error cargando el ranking'))
       .finally(() => setLoading(false));
   }, []);
+
+  const filtered = search.trim()
+    ? data.filter(e =>
+        e.name?.toLowerCase().includes(search.toLowerCase()) ||
+        e.sector?.toLowerCase().includes(search.toLowerCase())
+      )
+    : data;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -46,7 +54,37 @@ export default function Leaderboard() {
       </div>
 
       <div className="card">
-        <LeaderboardTable data={data} loading={loading} />
+        {/* Search */}
+        <div className="relative mb-4">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Buscar jugador o sector..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="input-field pl-9 text-sm"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {search && (
+          <p className="text-xs text-gray-500 mb-3">
+            {filtered.length} resultado{filtered.length !== 1 ? 's' : ''} para "{search}"
+          </p>
+        )}
+
+        <LeaderboardTable data={filtered} loading={loading} highlightSearch={search} />
       </div>
     </div>
   );
