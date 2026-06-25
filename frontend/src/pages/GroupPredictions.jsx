@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getGroupsInfo, getGroupPredictions, saveGroupPrediction, getGroupStandings } from '../services/api';
+import { getGroupsInfo, getGroupPredictions, saveGroupPrediction, getGroupStandings, getGroupResults } from '../services/api';
 import { teamName } from '../utils/teamNames';
 import FlagIcon from '../components/FlagIcon';
 
@@ -133,7 +133,7 @@ function StandingsTab() {
 // TAB: MIS PREDICCIONES
 // ─────────────────────────────────────────────
 
-function GroupCard({ group, info, prediction, onSaved }) {
+function GroupCard({ group, info, prediction, result, onSaved }) {
   const [first, setFirst] = useState(prediction?.first || '');
   const [second, setSecond] = useState(prediction?.second || '');
   const [saving, setSaving] = useState(false);
@@ -189,6 +189,15 @@ function GroupCard({ group, info, prediction, onSaved }) {
         ))}
       </div>
 
+      {/* Resultado real del grupo */}
+      {result && (
+        <div className="bg-gray-800/50 rounded-lg p-3 mb-3 text-xs space-y-1">
+          <p className="text-gray-400 font-medium mb-1">Resultado final del grupo:</p>
+          <p><span className="text-yellow-400">🥇 1°</span> <span className="text-white font-medium">{teamName(result.first)}</span></p>
+          <p><span className="text-gray-400">🥈 2°</span> <span className="text-white font-medium">{teamName(result.second)}</span></p>
+        </div>
+      )}
+
       {pts !== null && pts !== undefined && (
         <div className={`text-sm font-semibold mb-3 ${pointsLabel[pts]?.cls || 'text-gray-400'}`}>
           {pointsLabel[pts]?.text || `${pts} pts`}
@@ -240,15 +249,19 @@ function GroupCard({ group, info, prediction, onSaved }) {
 function PredictionsTab() {
   const [groupsInfo, setGroupsInfo] = useState({});
   const [predictions, setPredictions] = useState({});
+  const [groupResults, setGroupResults] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getGroupsInfo(), getGroupPredictions()])
-      .then(([infoRes, predRes]) => {
+    Promise.all([getGroupsInfo(), getGroupPredictions(), getGroupResults()])
+      .then(([infoRes, predRes, resultsRes]) => {
         setGroupsInfo(infoRes.data);
         const predMap = {};
         predRes.data.forEach(p => { predMap[p.group] = p; });
         setPredictions(predMap);
+        const resMap = {};
+        (resultsRes.data || []).forEach(r => { resMap[r.group] = r; });
+        setGroupResults(resMap);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -301,7 +314,7 @@ function PredictionsTab() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedGroups.map(g => (
-            <GroupCard key={g} group={g} info={groupsInfo[g]} prediction={predictions[g]} onSaved={handleSaved} />
+            <GroupCard key={g} group={g} info={groupsInfo[g]} prediction={predictions[g]} result={groupResults[g]} onSaved={handleSaved} />
           ))}
         </div>
       )}

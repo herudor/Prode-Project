@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   syncMatches, getAdminMatches, updateMatch, createMatch,
   getUsers, toggleUser, editUser, resetUserPassword, setTournamentResult,
-  getPredictionsSummary, recalculateMatch
+  getPredictionsSummary, recalculateMatch,
+  getAdminGroupResults, setGroupResult, getGroupPredictionsSummary, getGroupsInfo
 } from '../services/api';
 
 function TabButton({ active, onClick, children }) {
@@ -502,10 +503,10 @@ function UsersTab() {
 const POINTS_COLOR = { 3: 'text-green-400', 2: 'text-blue-400', 1: 'text-yellow-400', 0: 'text-red-400' };
 const PHASE_LABEL = { group: 'Grupo', round_of_32: 'R32', round_of_16: 'Octavos', quarter: 'Cuartos', semi: 'Semis', third: '3er Puesto', final: 'Final' };
 
-function PredictionsTab() {
+function MatchPredictionsSection() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(null); // match _id abierto
+  const [open, setOpen] = useState(null);
 
   useEffect(() => {
     getPredictionsSummary()
@@ -515,7 +516,6 @@ function PredictionsTab() {
   }, []);
 
   if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" /></div>;
-
   if (!data.length) return <p className="text-gray-500 text-sm text-center py-8">No hay partidos finalizados todavía</p>;
 
   return (
@@ -581,6 +581,215 @@ function PredictionsTab() {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function GroupPredictionsSection() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(null);
+
+  useEffect(() => {
+    getGroupPredictionsSummary()
+      .then(res => setData(res.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" /></div>;
+  if (!data.length) return <p className="text-gray-500 text-sm text-center py-8">No hay grupos cargados</p>;
+
+  return (
+    <div className="space-y-3">
+      {data.map(({ group, result, predictions, noPrediction }) => (
+        <div key={group} className="border border-gray-800 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setOpen(open === group ? null : group)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-gray-800/50 hover:bg-gray-800 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded">Grupo {group}</span>
+              {result
+                ? <span className="text-sm text-white">1° <span className="text-green-400 font-medium">{result.first}</span> · 2° <span className="text-blue-400 font-medium">{result.second}</span></span>
+                : <span className="text-xs text-yellow-500">Sin resultado definido</span>
+              }
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500">{predictions.length} predicciones</span>
+              <span className="text-gray-500 text-xs">{open === group ? '▲' : '▼'}</span>
+            </div>
+          </button>
+          {open === group && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-gray-500 border-b border-gray-800">
+                    <th className="py-2 pl-4 pr-2 text-left">Usuario</th>
+                    <th className="py-2 px-2 text-left text-gray-600">Sector</th>
+                    <th className="py-2 px-2 text-center">Predijo 1°</th>
+                    <th className="py-2 px-2 text-center">Predijo 2°</th>
+                    <th className="py-2 pr-4 pl-2 text-center">Pts</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800/50">
+                  {predictions.map((p, i) => (
+                    <tr key={i} className="hover:bg-gray-800/30">
+                      <td className="py-2 pl-4 pr-2 font-medium">{p.user.name}</td>
+                      <td className="py-2 px-2 text-gray-500 text-xs">{p.user.sector || '-'}</td>
+                      <td className="py-2 px-2 text-center text-xs">
+                        <span className={result && p.first === result.first ? 'text-green-400 font-medium' : result && p.first === result.second ? 'text-yellow-400' : 'text-gray-400'}>{p.first}</span>
+                      </td>
+                      <td className="py-2 px-2 text-center text-xs">
+                        <span className={result && p.second === result.second ? 'text-green-400 font-medium' : result && p.second === result.first ? 'text-yellow-400' : 'text-gray-400'}>{p.second}</span>
+                      </td>
+                      <td className="py-2 pr-4 pl-2 text-center font-bold">
+                        <span className={POINTS_COLOR[p.points] || 'text-gray-500'}>{p.points ?? '-'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                  {noPrediction.length > 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-2 pl-4 text-xs text-gray-600">
+                        Sin predicción: {noPrediction.join(', ')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PredictionsTab() {
+  const [subTab, setSubTab] = useState('matches');
+  return (
+    <div>
+      <div className="flex gap-2 mb-5">
+        <button onClick={() => setSubTab('matches')} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${subTab === 'matches' ? 'bg-primary-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+          ⚽ Partidos
+        </button>
+        <button onClick={() => setSubTab('groups')} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${subTab === 'groups' ? 'bg-primary-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+          🏟️ Grupos
+        </button>
+      </div>
+      {subTab === 'matches' ? <MatchPredictionsSection /> : <GroupPredictionsSection />}
+    </div>
+  );
+}
+
+// --- Pestaña: Resultados de grupos ---
+function GroupsTab() {
+  const [groupsInfo, setGroupsInfo] = useState({});
+  const [groupResults, setGroupResults] = useState({});
+  const [forms, setForms] = useState({});
+  const [saving, setSaving] = useState(null);
+  const [messages, setMessages] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([getGroupsInfo(), getAdminGroupResults()])
+      .then(([infoRes, resultsRes]) => {
+        setGroupsInfo(infoRes.data || {});
+        const rMap = {};
+        (resultsRes.data || []).forEach(r => { rMap[r.group] = r; });
+        setGroupResults(rMap);
+        const fMap = {};
+        Object.keys(infoRes.data || {}).forEach(g => {
+          fMap[g] = { first: rMap[g]?.first || '', second: rMap[g]?.second || '' };
+        });
+        setForms(fMap);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async (group) => {
+    const { first, second } = forms[group] || {};
+    if (!first || !second) return;
+    if (first === second) return setMessages(p => ({ ...p, [group]: 'No podés elegir el mismo equipo' }));
+    setSaving(group);
+    try {
+      const res = await setGroupResult(group, first, second);
+      setGroupResults(p => ({ ...p, [group]: { group, first, second } }));
+      setMessages(p => ({ ...p, [group]: `¡Guardado! ${res.data.predictionsUpdated} predicciones actualizadas` }));
+      setTimeout(() => setMessages(p => ({ ...p, [group]: '' })), 4000);
+    } catch (e) {
+      setMessages(p => ({ ...p, [group]: e.response?.data?.message || 'Error' }));
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const sortedGroups = Object.keys(groupsInfo).sort();
+
+  if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" /></div>;
+  if (!sortedGroups.length) return <p className="text-gray-500 text-sm py-8">No hay grupos cargados todavía.</p>;
+
+  return (
+    <div>
+      <p className="text-sm text-gray-400 mb-6">
+        Definí quién terminó 1° y 2° en cada grupo. Esto calcula los puntos de las predicciones de grupo de todos los usuarios.
+        Solo hacerlo cuando el grupo terminó sus 3 partidos.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {sortedGroups.map(g => {
+          const teams = groupsInfo[g]?.teams || [];
+          const form = forms[g] || {};
+          const saved = groupResults[g];
+          return (
+            <div key={g} className={`border rounded-xl p-4 ${saved ? 'border-green-500/30 bg-green-500/5' : 'border-gray-700'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold">Grupo {g}</h3>
+                {saved && <span className="text-xs text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">Definido</span>}
+              </div>
+              {saved && (
+                <p className="text-xs text-gray-400 mb-3">
+                  Actual: <span className="text-white">1° {saved.first}</span> · <span className="text-white">2° {saved.second}</span>
+                </p>
+              )}
+              <div className="space-y-2 mb-3">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">🥇 1° Clasificado</label>
+                  <select
+                    value={form.first || ''}
+                    onChange={e => setForms(p => ({ ...p, [g]: { ...p[g], first: e.target.value } }))}
+                    className="input-field text-sm py-1.5"
+                  >
+                    <option value="">-- Seleccioná --</option>
+                    {teams.map(t => <option key={t.name} value={t.name} disabled={t.name === form.second}>{t.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">🥈 2° Clasificado</label>
+                  <select
+                    value={form.second || ''}
+                    onChange={e => setForms(p => ({ ...p, [g]: { ...p[g], second: e.target.value } }))}
+                    className="input-field text-sm py-1.5"
+                  >
+                    <option value="">-- Seleccioná --</option>
+                    {teams.map(t => <option key={t.name} value={t.name} disabled={t.name === form.first}>{t.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              {messages[g] && (
+                <p className={`text-xs mb-2 ${messages[g].includes('!') ? 'text-green-400' : 'text-red-400'}`}>{messages[g]}</p>
+              )}
+              <button
+                onClick={() => handleSave(g)}
+                disabled={saving === g || !form.first || !form.second}
+                className="btn-primary w-full text-sm py-1.5"
+              >
+                {saving === g ? 'Guardando...' : saved ? 'Actualizar y recalcular' : 'Definir y calcular puntos'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -651,6 +860,7 @@ export default function Admin() {
     { id: 'matches', label: '⚽ Partidos' },
     { id: 'predictions', label: '🎯 Predicciones' },
     { id: 'users', label: '👥 Usuarios' },
+    { id: 'groups', label: '🏟️ Grupos' },
     { id: 'tournament', label: '🏆 Torneo' }
   ];
 
@@ -674,6 +884,7 @@ export default function Admin() {
         {activeTab === 'matches' && <MatchesTab />}
         {activeTab === 'predictions' && <PredictionsTab />}
         {activeTab === 'users' && <UsersTab />}
+        {activeTab === 'groups' && <GroupsTab />}
         {activeTab === 'tournament' && <TournamentTab />}
       </div>
     </div>

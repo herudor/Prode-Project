@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Match = require('../models/Match');
+const GroupResult = require('../models/GroupResult');
 const { getGroupStandings } = require('../services/sportsdbService');
 
 // GET /api/groups/standings
@@ -62,6 +63,16 @@ router.get('/standings', auth, async (req, res) => {
   } catch (err) {
     console.error('[groups/standings]', err.message);
     res.status(500).json({ message: 'Error obteniendo standings' });
+  }
+});
+
+// GET /api/groups/results — resultados reales de cada grupo (para mostrar a usuarios)
+router.get('/results', auth, async (req, res) => {
+  try {
+    const results = await GroupResult.find().sort({ group: 1 }).lean();
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ message: 'Error obteniendo resultados de grupo' });
   }
 });
 

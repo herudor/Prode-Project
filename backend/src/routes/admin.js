@@ -11,6 +11,7 @@ const isAdmin = require('../middleware/isAdmin');
 const { syncMatches, calculatePredictionPoints } = require('../jobs/syncResults');
 const { calculateChampionPoints, calculateTopScorerPoints, calculateGroupPoints } = require('../utils/scoring');
 const GroupPrediction = require('../models/GroupPrediction');
+const GroupResult = require('../models/GroupResult');
 
 // Todas las rutas admin requieren auth + isAdmin
 router.use(auth, isAdmin);
@@ -253,6 +254,16 @@ router.put('/tournament-result', async (req, res) => {
   }
 });
 
+// GET /api/admin/group-results — listar todos los resultados de grupo definidos
+router.get('/group-results', async (req, res) => {
+  try {
+    const results = await GroupResult.find().sort({ group: 1 });
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ message: 'Error obteniendo resultados de grupo' });
+  }
+});
+
 // PUT /api/admin/group-result/:group — definir 1° y 2° de un grupo y puntuar predicciones
 router.put('/group-result/:group', async (req, res) => {
   try {
@@ -262,6 +273,14 @@ router.put('/group-result/:group', async (req, res) => {
       return res.status(400).json({ message: 'first y second son requeridos' });
     }
 
+    // Persistir el resultado real del grupo
+    await GroupResult.findOneAndUpdate(
+      { group },
+      { first, second },
+      { upsert: true, new: true }
+    );
+
+    // Calcular puntos de todas las predicciones del grupo
     const predictions = await GroupPrediction.find({ group });
     for (const pred of predictions) {
       pred.points = calculateGroupPoints(pred.first, pred.second, first, second);
@@ -277,6 +296,47 @@ router.put('/group-result/:group', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error actualizando resultado del grupo' });
+  }
+});
+
+// GET /api/admin/group-predictions-summary — predicciones de grupo de todos los usuarios
+router.get('/group-predictions-summary', async (req, res) => {
+  try {
+    const results = await GroupResult.find().sort({ group: 1 }).lean();
+    const resultsMap = {};
+    results.forEach(r => { resultsMap[r.group] = r; });
+
+    const users = await User.find({ active: { $ne: false } }).select('name sector').lean();
+    const userMap = {};
+    users.forEach(u => { userMap[u._id.toString()] = u; });
+
+    // Obtener grupos únicos desde los partidos
+    const Match = require('../models/Match');
+    const groupNames = await Match.distinct('group', { phase: 'group', group: { $ne: null } });
+    groupNames.sort();
+
+    const summary = await Promise.all(groupNames.map(async (group) => {
+      const preds = await GroupPrediction.find({ group }).lean();
+      const result = resultsMap[group] || null;
+      return {
+        group,
+        result,
+        predictions: preds.map(p => ({
+          user: userMap[p.userId.toString()] || { name: 'Usuario eliminado', sector: '' },
+          first: p.first,
+          second: p.second,
+          points: p.points
+        })).sort((a, b) => (b.points ?? -1) - (a.points ?? -1)),
+        noPrediction: users
+          .filter(u => !preds.find(p => p.userId.toString() === u._id.toString()))
+          .map(u => u.name)
+      };
+    }));
+
+    res.json(summary);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error obteniendo predicciones de grupo' });
   }
 });
 
