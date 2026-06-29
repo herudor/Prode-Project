@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Prediction = require('../models/Prediction');
+const GroupPrediction = require('../models/GroupPrediction');
 const TournamentPrediction = require('../models/TournamentPrediction');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
@@ -8,7 +9,7 @@ const auth = require('../middleware/auth');
 // GET /api/leaderboard - tabla de ranking
 router.get('/', auth, async (req, res) => {
   try {
-    // Agregación: sumar puntos por usuario
+    // Puntos de predicciones de partidos
     const matchPoints = await Prediction.aggregate([
       { $match: { points: { $ne: null } } },
       {
@@ -22,28 +23,49 @@ router.get('/', auth, async (req, res) => {
       }
     ]);
 
+    // Puntos de predicciones de grupos
+    const groupPoints = await GroupPrediction.aggregate([
+      { $match: { points: { $ne: null } } },
+      { $group: { _id: '$userId', totalPoints: { $sum: '$points' } } }
+    ]);
+    const groupMap = {};
+    groupPoints.forEach(gp => { groupMap[gp._id.toString()] = gp.totalPoints; });
+
     // Puntos del torneo (campeón + goleador)
     const tournamentPoints = await TournamentPrediction.find({
       $or: [{ championPoints: { $gt: 0 } }, { topScorerPoints: { $gt: 0 } }]
     });
-
     const tournamentMap = {};
     tournamentPoints.forEach(tp => {
       tournamentMap[tp.userId.toString()] = (tp.championPoints || 0) + (tp.topScorerPoints || 0);
     });
 
-    // Construir mapa de puntos
+    // Construir mapa unificado de puntos
     const pointsMap = {};
+
     matchPoints.forEach(mp => {
-      pointsMap[mp._id.toString()] = {
-        totalPoints: mp.totalPoints + (tournamentMap[mp._id.toString()] || 0),
+      const uid = mp._id.toString();
+      pointsMap[uid] = {
+        totalPoints: mp.totalPoints + (groupMap[uid] || 0) + (tournamentMap[uid] || 0),
         totalPredictions: mp.totalPredictions,
         exactResults: mp.exactResults,
         correctResults: mp.correctResults
       };
     });
 
-    // Agregar usuarios con solo puntos del torneo
+    // Usuarios con puntos de grupo pero sin predicciones de partidos
+    Object.keys(groupMap).forEach(uid => {
+      if (!pointsMap[uid]) {
+        pointsMap[uid] = {
+          totalPoints: groupMap[uid] + (tournamentMap[uid] || 0),
+          totalPredictions: 0,
+          exactResults: 0,
+          correctResults: 0
+        };
+      }
+    });
+
+    // Usuarios con solo puntos del torneo
     Object.keys(tournamentMap).forEach(uid => {
       if (!pointsMap[uid]) {
         pointsMap[uid] = {
