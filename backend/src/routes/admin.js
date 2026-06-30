@@ -254,6 +254,52 @@ router.put('/tournament-result', async (req, res) => {
   }
 });
 
+// GET /api/admin/user-points/:userId — desglose de puntos por usuario
+router.get('/user-points/:userId', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).select('-password');
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    // Predicciones de partidos
+    const matchPreds = await Prediction.find({ userId: user._id }).lean();
+    const matchIds = matchPreds.map(p => p.matchId);
+    const matches = await Match.find({ _id: { $in: matchIds } }).lean();
+    const matchMap = {};
+    matches.forEach(m => { matchMap[m._id.toString()] = m; });
+
+    const matchPredictions = matchPreds
+      .map(p => ({ match: matchMap[p.matchId.toString()], prediction: p }))
+      .filter(x => x.match)
+      .sort((a, b) => new Date(a.match.date) - new Date(b.match.date));
+
+    const matchPoints = matchPreds.reduce((s, p) => s + (p.points || 0), 0);
+
+    // Predicciones de grupos
+    const groupPreds = await GroupPrediction.find({ userId: user._id }).lean();
+    const groupPoints = groupPreds.reduce((s, p) => s + (p.points || 0), 0);
+
+    // Predicción del torneo
+    const tourPred = await TournamentPrediction.findOne({ userId: user._id }).lean();
+    const tournamentPoints = tourPred ? (tourPred.championPoints || 0) + (tourPred.topScorerPoints || 0) : 0;
+
+    res.json({
+      user: { _id: user._id, name: user.name, sector: user.sector, email: user.email },
+      matchPredictions,
+      groupPredictions: groupPreds.sort((a, b) => a.group.localeCompare(b.group)),
+      tournamentPrediction: tourPred,
+      totals: {
+        matchPoints,
+        groupPoints,
+        tournamentPoints,
+        total: matchPoints + groupPoints + tournamentPoints
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error obteniendo puntos del usuario' });
+  }
+});
+
 // GET /api/admin/group-results — listar todos los resultados de grupo definidos
 router.get('/group-results', async (req, res) => {
   try {

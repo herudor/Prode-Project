@@ -80,5 +80,6 @@ export const getGroupResults = () => api.get('/groups/results');
 export const getAdminGroupResults = () => api.get('/admin/group-results');
 export const setGroupResult = (group, first, second) => api.put(`/admin/group-result/${group}`, { first, second });
 export const getGroupPredictionsSummary = () => api.get('/admin/group-predictions-summary');
+export const getUserPoints = (userId) => api.get(`/admin/user-points/${userId}`);
 
 export default api;

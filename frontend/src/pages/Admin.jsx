@@ -3,7 +3,8 @@ import {
   syncMatches, getAdminMatches, updateMatch, createMatch,
   getUsers, toggleUser, editUser, resetUserPassword, setTournamentResult,
   getPredictionsSummary, recalculateMatch,
-  getAdminGroupResults, setGroupResult, getGroupPredictionsSummary, getGroupsInfo
+  getAdminGroupResults, setGroupResult, getGroupPredictionsSummary, getGroupsInfo,
+  getUserPoints
 } from '../services/api';
 
 function TabButton({ active, onClick, children }) {
@@ -665,19 +666,248 @@ function GroupPredictionsSection() {
   );
 }
 
+const PHASE_LABEL_SHORT = { group: 'Grupo', round_of_32: 'R32', round_of_16: 'Octavos', quarter: 'Cuartos', semi: 'Semis', third: '3er Puesto', final: 'Final' };
+
+function UserPointsSection() {
+  const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+
+  useEffect(() => {
+    getUsers().then(res => { setUsers(res.data); setUsersLoaded(true); }).catch(console.error);
+  }, []);
+
+  const filtered = search.trim().length >= 2
+    ? users.filter(u => u.name?.toLowerCase().includes(search.toLowerCase()) || u.sector?.toLowerCase().includes(search.toLowerCase()))
+    : [];
+
+  const selectUser = async (user) => {
+    setSelected(user);
+    setSearch(user.name);
+    setData(null);
+    setLoading(true);
+    try {
+      const res = await getUserPoints(user._id);
+      setData(res.data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const clear = () => { setSelected(null); setSearch(''); setData(null); };
+
+  return (
+    <div>
+      {/* Buscador */}
+      <div className="relative max-w-md mb-6">
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Buscar usuario (nombre o sector)..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setSelected(null); setData(null); }}
+            className="input-field pl-9 pr-8 text-sm"
+          />
+          {search && (
+            <button onClick={clear} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {/* Dropdown de resultados */}
+        {!selected && filtered.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-10 max-h-48 overflow-y-auto">
+            {filtered.map(u => (
+              <button key={u._id} onClick={() => selectUser(u)}
+                className="w-full text-left px-4 py-2.5 hover:bg-gray-700 transition-colors text-sm border-b border-gray-700/50 last:border-0">
+                <span className="text-white">{u.name}</span>
+                {u.sector && <span className="text-gray-500 text-xs ml-2">{u.sector}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+        {!selected && search.length >= 2 && filtered.length === 0 && usersLoaded && (
+          <p className="text-xs text-gray-500 mt-2">Sin resultados para "{search}"</p>
+        )}
+        {search.length > 0 && search.length < 2 && (
+          <p className="text-xs text-gray-500 mt-2">Escribí al menos 2 caracteres...</p>
+        )}
+      </div>
+
+      {/* Loading */}
+      {loading && <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" /></div>}
+
+      {/* Desglose */}
+      {data && !loading && (
+        <div className="space-y-6">
+          {/* Header usuario */}
+          <div className="flex items-center justify-between pb-3 border-b border-gray-800">
+            <div>
+              <p className="font-bold text-lg text-white">{data.user.name}</p>
+              {data.user.sector && <p className="text-sm text-gray-400">{data.user.sector}</p>}
+            </div>
+            <div className="text-right">
+              <p className="text-3xl font-bold text-primary-400">{data.totals.total}</p>
+              <p className="text-xs text-gray-500">puntos totales</p>
+            </div>
+          </div>
+
+          {/* Sub-totales */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Partidos', pts: data.totals.matchPoints, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+              { label: 'Grupos', pts: data.totals.groupPoints, color: 'text-green-400', bg: 'bg-green-400/10' },
+              { label: 'Torneo', pts: data.totals.tournamentPoints, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+            ].map(({ label, pts, color, bg }) => (
+              <div key={label} className={`${bg} rounded-lg p-3 text-center`}>
+                <p className={`text-xl font-bold ${color}`}>{pts}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabla de partidos */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-300 mb-2">Predicciones de partidos</h4>
+            <div className="overflow-x-auto rounded-xl border border-gray-800">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-gray-500 border-b border-gray-800 bg-gray-800/30">
+                    <th className="py-2 pl-3 pr-2 text-left">Partido</th>
+                    <th className="py-2 px-2 text-center">Fase</th>
+                    <th className="py-2 px-2 text-center">Resultado</th>
+                    <th className="py-2 px-2 text-center">Predicción</th>
+                    <th className="py-2 pr-3 pl-2 text-center">Pts</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800/50">
+                  {data.matchPredictions.map((item, i) => {
+                    const match = item.match;
+                    const p = item.prediction;
+                    const hasResult = match.homeScore !== null && match.homeScore !== undefined;
+                    return (
+                      <tr key={i} className="hover:bg-gray-800/30">
+                        <td className="py-2 pl-3 pr-2 text-xs">
+                          <span className="text-white">{match.homeTeam}</span>
+                          <span className="text-gray-600 mx-1">vs</span>
+                          <span className="text-white">{match.awayTeam}</span>
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          <span className="text-xs text-gray-500">{PHASE_LABEL_SHORT[match.phase] || match.phase}{match.group ? ` ${match.group}` : ''}</span>
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono text-xs">
+                          {hasResult ? <span className="text-yellow-400 font-bold">{match.homeScore}-{match.awayScore}</span> : <span className="text-gray-600">-</span>}
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono text-xs text-gray-300">
+                          {p.homeScore}-{p.awayScore}
+                        </td>
+                        <td className="py-2 pr-3 pl-2 text-center font-bold">
+                          <span className={POINTS_COLOR[p.points] || 'text-gray-500'}>{p.points ?? '-'}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Tabla de grupos */}
+          {data.groupPredictions.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-300 mb-2">Predicciones de grupos</h4>
+              <div className="overflow-x-auto rounded-xl border border-gray-800">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-gray-500 border-b border-gray-800 bg-gray-800/30">
+                      <th className="py-2 pl-3 pr-2 text-left">Grupo</th>
+                      <th className="py-2 px-2 text-center">Predijo 1°</th>
+                      <th className="py-2 px-2 text-center">Predijo 2°</th>
+                      <th className="py-2 pr-3 pl-2 text-center">Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800/50">
+                    {data.groupPredictions.map((gp, i) => (
+                      <tr key={i} className="hover:bg-gray-800/30">
+                        <td className="py-2 pl-3 pr-2 font-bold text-gray-300">Grupo {gp.group}</td>
+                        <td className="py-2 px-2 text-center text-xs text-gray-300">{gp.first}</td>
+                        <td className="py-2 px-2 text-center text-xs text-gray-300">{gp.second}</td>
+                        <td className="py-2 pr-3 pl-2 text-center font-bold">
+                          <span className={POINTS_COLOR[gp.points] || 'text-gray-500'}>{gp.points ?? '-'}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Torneo */}
+          {data.tournamentPrediction && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-300 mb-2">Predicción del torneo</h4>
+              <div className="rounded-xl border border-gray-800 bg-gray-800/20 p-4 text-sm space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Campeón predicho:</span>
+                  <span className="text-white font-medium">{data.tournamentPrediction.champion || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Pts campeón:</span>
+                  <span className={POINTS_COLOR[data.tournamentPrediction.championPoints] || 'text-gray-500'}>
+                    {data.tournamentPrediction.championPoints ?? '-'}
+                  </span>
+                </div>
+                {data.tournamentPrediction.topScorer && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Goleador predicho:</span>
+                      <span className="text-white font-medium">{data.tournamentPrediction.topScorer}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Pts goleador:</span>
+                      <span className={POINTS_COLOR[data.tournamentPrediction.topScorerPoints] || 'text-gray-500'}>
+                        {data.tournamentPrediction.topScorerPoints ?? '-'}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PredictionsTab() {
   const [subTab, setSubTab] = useState('matches');
+  const SUB_TABS = [
+    { id: 'matches', label: '⚽ Partidos' },
+    { id: 'groups',  label: '🏟️ Grupos' },
+    { id: 'user',    label: '👤 Por usuario' },
+  ];
   return (
     <div>
       <div className="flex gap-2 mb-5">
-        <button onClick={() => setSubTab('matches')} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${subTab === 'matches' ? 'bg-primary-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
-          ⚽ Partidos
-        </button>
-        <button onClick={() => setSubTab('groups')} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${subTab === 'groups' ? 'bg-primary-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
-          🏟️ Grupos
-        </button>
+        {SUB_TABS.map(t => (
+          <button key={t.id} onClick={() => setSubTab(t.id)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${subTab === t.id ? 'bg-primary-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+            {t.label}
+          </button>
+        ))}
       </div>
-      {subTab === 'matches' ? <MatchPredictionsSection /> : <GroupPredictionsSection />}
+      {subTab === 'matches' && <MatchPredictionsSection />}
+      {subTab === 'groups'  && <GroupPredictionsSection />}
+      {subTab === 'user'    && <UserPointsSection />}
     </div>
   );
 }
