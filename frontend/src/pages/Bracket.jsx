@@ -4,6 +4,18 @@ import PredictionForm from '../components/PredictionForm';
 import FlagIcon from '../components/FlagIcon';
 import { teamName } from '../utils/teamNames';
 
+// Orden de partidos por slot de bracket (IDs de worldcup26.ir)
+// Izquierda luego derecha, de arriba a abajo, según bracket oficial FIFA 2026
+const R32_ORDER = [74, 77, 73, 75, 83, 84, 81, 82,   // lado izquierdo
+                   76, 78, 79, 80, 86, 88, 85, 87];  // lado derecho
+const R16_ORDER = [89, 90, 93, 94,   // izquierda
+                   91, 92, 95, 96];  // derecha
+const QF_ORDER  = [97, 98,   // izquierda
+                   99, 100]; // derecha
+const SF_ORDER  = [101, 102];
+const FINAL_ID  = 104;
+const THIRD_ID  = 103;
+
 // ─── Layout constants ────────────────────────────────────────────────────────
 const ROW_H  = 96;   // px — height of one base row (= 1 R32 match slot per side)
 const ROWS   = 8;    // base rows per half (8 R32 matches per side)
@@ -219,16 +231,21 @@ export default function Bracket() {
     try {
       const [matchRes, predRes] = await Promise.all([getMatches(), getPredictions()]);
 
-      const byPhase = (phase) =>
-        matchRes.data.filter(m => m.phase === phase).sort((a, b) => new Date(a.date) - new Date(b.date));
+      // Indexar todos los partidos por su ID numérico (wc26_X → X)
+      const byId = {};
+      matchRes.data.forEach(m => {
+        const id = parseInt(m.externalId?.replace('wc26_', '') || '0');
+        if (id) byId[id] = m;
+      });
+      const get = (id) => byId[id] || null;
 
       setKnockoutMatches({
-        r32:   byPhase('round_of_32'),
-        r16:   byPhase('round_of_16'),
-        qf:    byPhase('quarter'),
-        sf:    byPhase('semi'),
-        third: byPhase('third')[0] || null,
-        final: byPhase('final')[0]  || null,
+        r32:   R32_ORDER.map(get),
+        r16:   R16_ORDER.map(get),
+        qf:    QF_ORDER.map(get),
+        sf:    SF_ORDER.map(get),
+        third: get(THIRD_ID),
+        final: get(FINAL_ID),
       });
 
       const predMap = {};
