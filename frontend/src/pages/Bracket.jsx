@@ -355,8 +355,11 @@ export default function Bracket() {
             <StemL col={COL.cl4} />
 
             {/* ── CENTER: FINAL ── */}
-            <MatchCell row={1} rowSpan={ROWS} col={COL.fin}
-              match={finalMatch} prediction={pred(finalMatch)} onPredict={setSelectedMatch} />
+            {/* Copa Mundial sobre el partido final */}
+            <div style={{ gridRow: `1 / span ${ROWS}`, gridColumn: COL.fin, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <img src="/copa_mundial.png" alt="Copa Mundial" style={{ width: 80, opacity: 0.85, filter: 'drop-shadow(0 0 12px rgba(234,179,8,0.5))' }} />
+              <MatchCard match={finalMatch} prediction={pred(finalMatch)} onPredict={setSelectedMatch} />
+            </div>
 
             {/* Right Final→SF stem */}
             <StemR col={COL.cr4} />
