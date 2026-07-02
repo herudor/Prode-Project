@@ -4,7 +4,7 @@ import FlagIcon from './FlagIcon';
 
 const PHASE_LABELS = {
   group: 'Fase de Grupos',
-  round_of_32: 'Ronda de 32',
+  round_of_32: '16avos de Final',
   round_of_16: 'Octavos de Final',
   quarter: 'Cuartos de Final',
   semi: 'Semifinal',
@@ -57,8 +57,13 @@ function PointsBadge({ points }) {
   );
 }
 
+function isPlaceholder(name) {
+  return !name || name === 'TBD' || /^(Winner|Loser|Runner|3rd)/i.test(name);
+}
+
 export default function MatchCard({ match, prediction, onPredict }) {
-  const isPredictable = match.status === 'upcoming' && new Date(match.date) > new Date();
+  const teamsReady = !isPlaceholder(match.homeTeam) && !isPlaceholder(match.awayTeam);
+  const isPredictable = match.status === 'upcoming' && new Date(match.date) > new Date() && teamsReady;
 
   return (
     <div className="card hover:border-gray-700 transition-colors">
@@ -136,7 +141,9 @@ export default function MatchCard({ match, prediction, onPredict }) {
             </div>
           </div>
         ) : (
-          isPredictable ? (
+          !teamsReady ? (
+            <p className="text-center text-xs text-gray-600">Países aún no definidos</p>
+          ) : isPredictable ? (
             <button
               onClick={() => onPredict(match)}
               className="w-full btn-primary text-sm py-2"

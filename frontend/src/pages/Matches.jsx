@@ -6,6 +6,7 @@ import PredictionForm from '../components/PredictionForm';
 const PHASES = [
   { value: 'all', label: 'Todos' },
   { value: 'group', label: 'Grupos' },
+  { value: 'round_of_32', label: '16avos' },
   { value: 'round_of_16', label: 'Octavos' },
   { value: 'quarter', label: 'Cuartos' },
   { value: 'semi', label: 'Semis' },
