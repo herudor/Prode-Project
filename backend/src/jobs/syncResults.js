@@ -4,8 +4,35 @@ const Prediction = require('../models/Prediction');
 const { getSeasonMatches } = require('../services/sportsdbService');
 const { calculateMatchPoints, calculateKnockoutPoints, isKnockout } = require('../utils/scoring');
 
+// Detecta si un nombre de equipo es un placeholder sin resolver
+function isPlaceholderName(name) {
+  return !name || name === 'TBD' || /^(Winner|Loser|Runner|3rd) Match \d+/i.test(name);
+}
+
 /**
- * Sincroniza/actualiza partidos en la BD desde TheSportsDB
+ * Resuelve "Winner Match 101" o "Loser Match 101" buscando en la BD
+ * el partido wc26_101 ya finalizado y devolviendo el equipo ganador o perdedor.
+ */
+async function resolveTeamFromLabel(label) {
+  if (!label) return null;
+  const winnerM = label.match(/^Winner Match (\d+)$/i);
+  const loserM  = label.match(/^Loser Match (\d+)$/i);
+  const ref = winnerM || loserM;
+  if (!ref) return null;
+
+  const srcMatch = await Match.findOne({ externalId: `wc26_${ref[1]}`, status: 'finished' });
+  if (!srcMatch || srcMatch.homeScore === null) return null;
+
+  const homeWins = srcMatch.homeScore > srcMatch.awayScore
+    || (srcMatch.homeScore === srcMatch.awayScore && srcMatch.penaltyWinner === 'home');
+  const winner = homeWins ? srcMatch.homeTeam : srcMatch.awayTeam;
+  const loser  = homeWins ? srcMatch.awayTeam : srcMatch.homeTeam;
+
+  return winnerM ? winner : loser;
+}
+
+/**
+ * Sincroniza/actualiza partidos en la BD desde la API externa
  */
 async function syncMatches() {
   console.log('[SyncJob] Iniciando sincronización de partidos...');
@@ -32,12 +59,27 @@ async function syncMatches() {
           homeTeamLabel: event.homeTeamLabel || existing.homeTeamLabel,
           awayTeamLabel: event.awayTeamLabel || existing.awayTeamLabel,
         };
-        // Solo actualizar scores si la API los provee (no sobreescribir con null)
+
+        // Solo actualizar scores si la API los provee
         if (event.homeScore !== null) update.homeScore = event.homeScore;
         if (event.awayScore !== null) update.awayScore = event.awayScore;
-        // Actualizar nombre de equipo en eliminatorias cuando ya se definió
-        if (event.homeTeam && event.homeTeam !== 'TBD') update.homeTeam = event.homeTeam;
-        if (event.awayTeam && event.awayTeam !== 'TBD') update.awayTeam = event.awayTeam;
+
+        // Actualizar nombre de equipo: primero intentar con la API,
+        // si sigue siendo placeholder intentar resolver desde la BD
+        for (const side of ['homeTeam', 'awayTeam']) {
+          const apiName = event[side];
+          const currentName = existing[side];
+          if (!isPlaceholderName(apiName)) {
+            update[side] = apiName;                          // API ya tiene el nombre real
+          } else if (isPlaceholderName(currentName)) {
+            const resolved = await resolveTeamFromLabel(apiName || currentName);
+            if (resolved) {
+              update[side] = resolved;
+              console.log(`[SyncJob] Equipo resuelto desde BD: ${resolved} (${apiName || currentName})`);
+            }
+          }
+        }
+
         await Match.findByIdAndUpdate(existing._id, update);
 
         // Si el partido acaba de terminar, calcular puntos

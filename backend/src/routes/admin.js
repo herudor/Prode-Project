@@ -61,7 +61,7 @@ router.post('/sync', async (req, res) => {
 // PUT /api/admin/matches/:id - actualizar resultado de un partido manualmente
 router.put('/matches/:id', async (req, res) => {
   try {
-    const { homeScore, awayScore, status, penaltyWinner } = req.body;
+    const { homeScore, awayScore, status, penaltyWinner, homeTeam, awayTeam } = req.body;
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ message: 'Partido no encontrado' });
 
@@ -73,6 +73,8 @@ router.put('/matches/:id', async (req, res) => {
     if (homeScore !== undefined) match.homeScore = homeScore;
     if (awayScore !== undefined) match.awayScore = awayScore;
     if (status) match.status = status;
+    if (homeTeam && homeTeam.trim()) match.homeTeam = homeTeam.trim();
+    if (awayTeam && awayTeam.trim()) match.awayTeam = awayTeam.trim();
     // penaltyWinner: solo aplica si es empate al 90' en eliminatorias; null borra el valor
     if (penaltyWinner !== undefined) match.penaltyWinner = penaltyWinner || null;
 

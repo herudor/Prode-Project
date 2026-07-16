@@ -60,6 +60,8 @@ function MatchesTab() {
   const handleEditSave = async () => {
     try {
       const data = {};
+      if (editForm.homeTeam && editForm.homeTeam.trim()) data.homeTeam = editForm.homeTeam.trim();
+      if (editForm.awayTeam && editForm.awayTeam.trim()) data.awayTeam = editForm.awayTeam.trim();
       if (editForm.homeScore !== '') data.homeScore = parseInt(editForm.homeScore);
       if (editForm.awayScore !== '') data.awayScore = parseInt(editForm.awayScore);
       if (editForm.status) data.status = editForm.status;
@@ -88,6 +90,8 @@ function MatchesTab() {
   const startEdit = (match) => {
     setEditing(match);
     setEditForm({
+      homeTeam: match.homeTeam || '',
+      awayTeam: match.awayTeam || '',
       homeScore: match.homeScore ?? '',
       awayScore: match.awayScore ?? '',
       status: match.status,
@@ -228,6 +232,31 @@ function MatchesTab() {
               {editing.homeTeam} vs {editing.awayTeam}
             </h3>
             <div className="space-y-3">
+              {/* Edición de equipos — solo si son placeholders */}
+              {/^(Winner|Loser|Runner|TBD)/i.test(editing.homeTeam) && (
+                <div>
+                  <label className="text-xs text-orange-400 mb-1 block">Equipo local (placeholder detectado)</label>
+                  <input
+                    type="text"
+                    value={editForm.homeTeam}
+                    onChange={e => setEditForm(p => ({ ...p, homeTeam: e.target.value }))}
+                    placeholder="Nombre del equipo local"
+                    className="input-field text-sm"
+                  />
+                </div>
+              )}
+              {/^(Winner|Loser|Runner|TBD)/i.test(editing.awayTeam) && (
+                <div>
+                  <label className="text-xs text-orange-400 mb-1 block">Equipo visitante (placeholder detectado)</label>
+                  <input
+                    type="text"
+                    value={editForm.awayTeam}
+                    onChange={e => setEditForm(p => ({ ...p, awayTeam: e.target.value }))}
+                    placeholder="Nombre del equipo visitante"
+                    className="input-field text-sm"
+                  />
+                </div>
+              )}
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="text-xs text-gray-500 mb-1 block">Goles local</label>
