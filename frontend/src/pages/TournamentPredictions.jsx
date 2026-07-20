@@ -48,7 +48,7 @@ export default function TournamentPredictions() {
     setSaving(true);
     try {
       const res = await saveTournamentPrediction(form.champion, form.topScorer);
-      setSaved(res.data);
+      setSaved(prev => ({ ...prev, ...res.data }));
       setMessage('¡Predicción guardada correctamente!');
     } catch (err) {
       setError(err.response?.data?.message || 'Error guardando predicción');
@@ -64,6 +64,10 @@ export default function TournamentPredictions() {
       </div>
     );
   }
+
+  const result = saved?.result;
+  const hasResult = !!(result && (result.champion || result.topScorer));
+  const tournamentPoints = (saved?.championPoints || 0) + (saved?.topScorerPoints || 0);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -85,19 +89,53 @@ export default function TournamentPredictions() {
         </div>
       </div>
 
+      {/* Resultado oficial del torneo */}
+      {hasResult && (
+        <div className="card border-green-500/30 mb-6">
+          <h3 className="text-sm text-gray-500 mb-3">Resultado final del Mundial</h3>
+          <div className="flex flex-wrap gap-8">
+            {result.champion && (
+              <div>
+                <p className="text-xs text-gray-500">Campeón</p>
+                <p className="font-bold text-yellow-400">🏆 {result.champion}</p>
+              </div>
+            )}
+            {result.topScorer && (
+              <div>
+                <p className="text-xs text-gray-500">Goleador</p>
+                <p className="font-bold text-orange-400">⚽ {result.topScorer}</p>
+              </div>
+            )}
+          </div>
+          <div className="mt-4 pt-3 border-t border-gray-800 flex items-center justify-between">
+            <span className="text-sm text-gray-400">Puntos que sumaste acá</span>
+            <span className={`text-2xl font-bold ${tournamentPoints > 0 ? 'text-green-400' : 'text-gray-600'}`}>
+              +{tournamentPoints}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Current saved prediction */}
       {saved && (saved.champion || saved.topScorer) && (
         <div className="card border-primary-500/30 mb-6">
-          <h3 className="text-sm text-gray-500 mb-3">Tu predicción actual</h3>
-          <div className="flex gap-6">
+          <h3 className="text-sm text-gray-500 mb-3">Tu predicción {hasResult ? '' : 'actual'}</h3>
+          <div className="flex flex-wrap gap-8">
             {saved.champion && (
               <div>
                 <p className="text-xs text-gray-500">Campeón</p>
                 <p className="font-bold text-yellow-400 flex items-center gap-1">
                   🏆 {saved.champion}
+                  {result?.champion && (
+                    <span className={saved.championPoints > 0 ? 'text-green-400' : 'text-red-400'}>
+                      {saved.championPoints > 0 ? '✓' : '✗'}
+                    </span>
+                  )}
                 </p>
-                {saved.championPoints > 0 && (
-                  <p className="text-xs text-green-400 mt-1">+{saved.championPoints} pts</p>
+                {result?.champion && (
+                  <p className={`text-xs mt-1 ${saved.championPoints > 0 ? 'text-green-400' : 'text-gray-500'}`}>
+                    {saved.championPoints > 0 ? `¡Acertaste! +${saved.championPoints} pts` : 'No acertaste · 0 pts'}
+                  </p>
                 )}
               </div>
             )}
@@ -106,9 +144,16 @@ export default function TournamentPredictions() {
                 <p className="text-xs text-gray-500">Goleador</p>
                 <p className="font-bold text-orange-400 flex items-center gap-1">
                   ⚽ {saved.topScorer}
+                  {result?.topScorer && (
+                    <span className={saved.topScorerPoints > 0 ? 'text-green-400' : 'text-red-400'}>
+                      {saved.topScorerPoints > 0 ? '✓' : '✗'}
+                    </span>
+                  )}
                 </p>
-                {saved.topScorerPoints > 0 && (
-                  <p className="text-xs text-green-400 mt-1">+{saved.topScorerPoints} pts</p>
+                {result?.topScorer && (
+                  <p className={`text-xs mt-1 ${saved.topScorerPoints > 0 ? 'text-green-400' : 'text-gray-500'}`}>
+                    {saved.topScorerPoints > 0 ? `¡Acertaste! +${saved.topScorerPoints} pts` : 'No acertaste · 0 pts'}
+                  </p>
                 )}
               </div>
             )}

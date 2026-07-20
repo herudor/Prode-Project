@@ -4,7 +4,7 @@ import {
   getUsers, toggleUser, editUser, resetUserPassword, setTournamentResult,
   getPredictionsSummary, recalculateMatch,
   getAdminGroupResults, setGroupResult, getGroupPredictionsSummary, getGroupsInfo,
-  getUserPoints
+  getUserPoints, getTournamentResult, getTournamentPredictionsSummary
 } from '../services/api';
 
 function TabButton({ active, onClick, children }) {
@@ -917,12 +917,111 @@ function UserPointsSection() {
   );
 }
 
+function TournamentPredictionsSection() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getTournamentPredictionsSummary()
+      .then(res => setData(res.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" /></div>;
+  if (!data) return <p className="text-gray-500 text-sm text-center py-8">No se pudieron cargar las predicciones</p>;
+
+  const { result, predictions, stats, noPrediction } = data;
+  const defined = result && (result.champion || result.topScorer);
+
+  return (
+    <div className="space-y-4">
+      {/* Resultado oficial */}
+      <div className={`card ${defined ? 'border-green-500/30' : 'border-yellow-500/30'}`}>
+        <h3 className="text-sm text-gray-500 mb-3">Resultado oficial del torneo</h3>
+        {defined ? (
+          <div className="flex flex-wrap gap-8">
+            <div>
+              <p className="text-xs text-gray-500">Campeón</p>
+              <p className="font-bold text-yellow-400">🏆 {result.champion || '— sin definir —'}</p>
+              <p className="text-xs text-gray-500 mt-1">{stats.championHits} de {stats.totalPredictions} acertaron</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Goleador</p>
+              <p className="font-bold text-orange-400">⚽ {result.topScorer || '— sin definir —'}</p>
+              <p className="text-xs text-gray-500 mt-1">{stats.topScorerHits} de {stats.totalPredictions} acertaron</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-yellow-500">
+            Todavía no cargaste el resultado. Andá a la pestaña <span className="font-medium">🏆 Torneo</span> para definirlo.
+          </p>
+        )}
+      </div>
+
+      {/* Tabla de predicciones */}
+      {predictions.length === 0 ? (
+        <p className="text-gray-500 text-sm text-center py-8">Nadie cargó predicciones de torneo</p>
+      ) : (
+        <div className="border border-gray-800 rounded-xl overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-gray-500 border-b border-gray-800 bg-gray-800/50">
+                <th className="py-2 pl-4 pr-2 text-left">Usuario</th>
+                <th className="py-2 px-2 text-left text-gray-600">Sector</th>
+                <th className="py-2 px-2 text-left">Campeón</th>
+                <th className="py-2 px-2 text-center">Pts</th>
+                <th className="py-2 px-2 text-left">Goleador</th>
+                <th className="py-2 px-2 text-center">Pts</th>
+                <th className="py-2 pr-4 pl-2 text-center">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800/50">
+              {predictions.map((p, i) => (
+                <tr key={i} className="hover:bg-gray-800/30">
+                  <td className="py-2 pl-4 pr-2 font-medium">{p.user.name}</td>
+                  <td className="py-2 px-2 text-gray-500 text-xs">{p.user.sector || '-'}</td>
+                  <td className="py-2 px-2 text-xs">
+                    <span className={p.championPoints > 0 ? 'text-green-400 font-medium' : defined ? 'text-gray-500 line-through' : 'text-gray-400'}>
+                      {p.champion || '-'}
+                    </span>
+                  </td>
+                  <td className="py-2 px-2 text-center font-bold">
+                    <span className={p.championPoints > 0 ? 'text-green-400' : 'text-gray-600'}>{p.championPoints}</span>
+                  </td>
+                  <td className="py-2 px-2 text-xs">
+                    <span className={p.topScorerPoints > 0 ? 'text-green-400 font-medium' : defined ? 'text-gray-500 line-through' : 'text-gray-400'}>
+                      {p.topScorer || '-'}
+                    </span>
+                  </td>
+                  <td className="py-2 px-2 text-center font-bold">
+                    <span className={p.topScorerPoints > 0 ? 'text-green-400' : 'text-gray-600'}>{p.topScorerPoints}</span>
+                  </td>
+                  <td className="py-2 pr-4 pl-2 text-center font-bold text-primary-400">{p.total}</td>
+                </tr>
+              ))}
+              {noPrediction.length > 0 && (
+                <tr>
+                  <td colSpan={7} className="py-2 pl-4 text-xs text-gray-600">
+                    Sin predicción: {noPrediction.join(', ')}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PredictionsTab() {
   const [subTab, setSubTab] = useState('matches');
   const SUB_TABS = [
-    { id: 'matches', label: '⚽ Partidos' },
-    { id: 'groups',  label: '🏟️ Grupos' },
-    { id: 'user',    label: '👤 Por usuario' },
+    { id: 'matches',    label: '⚽ Partidos' },
+    { id: 'groups',     label: '🏟️ Grupos' },
+    { id: 'tournament', label: '🏆 Campeón y goleador' },
+    { id: 'user',       label: '👤 Por usuario' },
   ];
   return (
     <div>
@@ -934,9 +1033,10 @@ function PredictionsTab() {
           </button>
         ))}
       </div>
-      {subTab === 'matches' && <MatchPredictionsSection />}
-      {subTab === 'groups'  && <GroupPredictionsSection />}
-      {subTab === 'user'    && <UserPointsSection />}
+      {subTab === 'matches'    && <MatchPredictionsSection />}
+      {subTab === 'groups'     && <GroupPredictionsSection />}
+      {subTab === 'tournament' && <TournamentPredictionsSection />}
+      {subTab === 'user'       && <UserPointsSection />}
     </div>
   );
 }
@@ -1056,9 +1156,19 @@ function GroupsTab() {
 // --- Pestaña: Resultados del torneo ---
 function TournamentTab() {
   const [form, setForm] = useState({ champion: '', topScorer: '' });
+  const [saved, setSaved] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    getTournamentResult()
+      .then(res => {
+        setSaved(res.data);
+        setForm({ champion: res.data.champion || '', topScorer: res.data.topScorer || '' });
+      })
+      .catch(console.error);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1067,6 +1177,7 @@ function TournamentTab() {
     setLoading(true);
     try {
       const res = await setTournamentResult(form.champion || undefined, form.topScorer || undefined);
+      setSaved({ champion: res.data.champion, topScorer: res.data.topScorer });
       setMessage(`Actualizado: ${res.data.predictionsUpdated} predicciones recalculadas`);
     } catch (e) {
       setError(e.response?.data?.message || 'Error');
@@ -1080,6 +1191,14 @@ function TournamentTab() {
       <p className="text-gray-400 text-sm mb-6">
         Define el resultado final del torneo. Esto calculará los puntos de todas las predicciones de torneo.
       </p>
+
+      {saved && (saved.champion || saved.topScorer) && (
+        <div className="card border-green-500/30 mb-6">
+          <h3 className="text-sm text-gray-500 mb-2">Resultado cargado actualmente</h3>
+          <p className="text-sm">🏆 Campeón: <span className="font-bold text-yellow-400">{saved.champion || '— sin definir —'}</span></p>
+          <p className="text-sm mt-1">⚽ Goleador: <span className="font-bold text-orange-400">{saved.topScorer || '— sin definir —'}</span></p>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm text-gray-400 mb-1">Campeón</label>

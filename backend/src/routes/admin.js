@@ -12,6 +12,7 @@ const { syncMatches, calculatePredictionPoints } = require('../jobs/syncResults'
 const { calculateChampionPoints, calculateTopScorerPoints, calculateGroupPoints } = require('../utils/scoring');
 const GroupPrediction = require('../models/GroupPrediction');
 const GroupResult = require('../models/GroupResult');
+const TournamentResult = require('../models/TournamentResult');
 
 // Todas las rutas admin requieren auth + isAdmin
 router.use(auth, isAdmin);
@@ -227,32 +228,89 @@ router.get('/predictions-summary', async (req, res) => {
   }
 });
 
+// GET /api/admin/tournament-result - resultado oficial cargado
+router.get('/tournament-result', async (req, res) => {
+  try {
+    const result = await TournamentResult.findOne({ key: 'main' }).lean();
+    res.json(result || { champion: null, topScorer: null });
+  } catch (err) {
+    res.status(500).json({ message: 'Error obteniendo resultado del torneo' });
+  }
+});
+
 // PUT /api/admin/tournament-result - definir campeón y goleador del torneo
 router.put('/tournament-result', async (req, res) => {
   try {
     const { champion, topScorer } = req.body;
 
+    // Persistir el resultado oficial (mantiene el valor previo si no se envía)
+    const update = {};
+    if (champion) update.champion = champion;
+    if (topScorer) update.topScorer = topScorer;
+    const result = await TournamentResult.findOneAndUpdate(
+      { key: 'main' },
+      { $set: update },
+      { upsert: true, new: true }
+    );
+
     // Actualizar puntos de todas las predicciones del torneo
     const predictions = await TournamentPrediction.find();
     for (const pred of predictions) {
-      if (champion) {
-        pred.championPoints = calculateChampionPoints(pred.champion, champion);
-      }
-      if (topScorer) {
-        pred.topScorerPoints = calculateTopScorerPoints(pred.topScorer, topScorer);
-      }
+      pred.championPoints = calculateChampionPoints(pred.champion, result.champion);
+      pred.topScorerPoints = calculateTopScorerPoints(pred.topScorer, result.topScorer);
       await pred.save();
     }
 
     res.json({
       message: 'Resultados del torneo actualizados',
-      champion,
-      topScorer,
+      champion: result.champion,
+      topScorer: result.topScorer,
       predictionsUpdated: predictions.length
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error actualizando resultado del torneo' });
+  }
+});
+
+// GET /api/admin/tournament-predictions-summary - quién acertó campeón y goleador
+router.get('/tournament-predictions-summary', async (req, res) => {
+  try {
+    const result = await TournamentResult.findOne({ key: 'main' }).lean();
+    const users = await User.find({ active: { $ne: false } }).select('name sector').lean();
+    const preds = await TournamentPrediction.find().lean();
+
+    const predMap = {};
+    preds.forEach(p => { predMap[p.userId.toString()] = p; });
+
+    const predictions = users
+      .filter(u => predMap[u._id.toString()])
+      .map(u => {
+        const p = predMap[u._id.toString()];
+        return {
+          user: { name: u.name, sector: u.sector },
+          champion: p.champion,
+          topScorer: p.topScorer,
+          championPoints: p.championPoints || 0,
+          topScorerPoints: p.topScorerPoints || 0,
+          total: (p.championPoints || 0) + (p.topScorerPoints || 0)
+        };
+      })
+      .sort((a, b) => b.total - a.total || a.user.name.localeCompare(b.user.name));
+
+    res.json({
+      result: result || { champion: null, topScorer: null },
+      predictions,
+      stats: {
+        totalPredictions: predictions.length,
+        championHits: predictions.filter(p => p.championPoints > 0).length,
+        topScorerHits: predictions.filter(p => p.topScorerPoints > 0).length
+      },
+      noPrediction: users.filter(u => !predMap[u._id.toString()]).map(u => u.name)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error obteniendo predicciones del torneo' });
   }
 });
 

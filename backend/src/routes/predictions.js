@@ -3,6 +3,7 @@ const router = express.Router();
 const Prediction = require('../models/Prediction');
 const Match = require('../models/Match');
 const TournamentPrediction = require('../models/TournamentPrediction');
+const TournamentResult = require('../models/TournamentResult');
 const auth = require('../middleware/auth');
 const { calculateMatchPoints, calculateKnockoutPoints, isKnockout } = require('../utils/scoring');
 
@@ -73,7 +74,12 @@ router.get('/tournament/me', auth, async (req, res) => {
         { date: { $lte: new Date() } }
       ]
     });
-    res.json({ ...(pred ? pred.toObject() : {}), locked: !!tournamentStarted });
+    const result = await TournamentResult.findOne({ key: 'main' }).lean();
+    res.json({
+      ...(pred ? pred.toObject() : {}),
+      locked: !!tournamentStarted,
+      result: result ? { champion: result.champion, topScorer: result.topScorer } : null
+    });
   } catch (err) {
     res.status(500).json({ message: 'Error obteniendo predicción del torneo' });
   }

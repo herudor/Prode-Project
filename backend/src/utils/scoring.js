@@ -96,11 +96,49 @@ function calculateKnockoutPoints(predHome, predAway, predPenalty, realHome, real
 }
 
 /**
+ * Normaliza un texto para comparar: sin acentos, minúsculas,
+ * sin puntuación y con espacios colapsados.
+ * "  Kylian  Mbappé " -> "kylian mbappe"
+ */
+function normalizeName(value) {
+  if (!value) return '';
+  return value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')  // quitar acentos
+    .toLowerCase()
+    .replace(/[.,'`´]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Compara nombres de personas de forma tolerante: los usuarios escriben
+ * el goleador a mano ("Mbappe", "K. Mbappé", "Kylian Mbappé").
+ * Se considera acierto si los nombres normalizados coinciden o si
+ * coincide el apellido (última palabra de al menos 3 letras).
+ */
+function namesMatch(predicted, actual) {
+  const p = normalizeName(predicted);
+  const a = normalizeName(actual);
+  if (!p || !a) return false;
+  if (p === a) return true;
+
+  const lastName = (str) => {
+    const parts = str.split(' ').filter(w => w.length >= 3);
+    return parts.length ? parts[parts.length - 1] : '';
+  };
+
+  const pLast = lastName(p);
+  const aLast = lastName(a);
+  return !!pLast && pLast === aLast;
+}
+
+/**
  * Calcula puntos por campeón acertado
  */
 function calculateChampionPoints(predicted, actual) {
   if (!predicted || !actual) return 0;
-  return predicted.toLowerCase().trim() === actual.toLowerCase().trim() ? 5 : 0;
+  return normalizeName(predicted) === normalizeName(actual) ? 5 : 0;
 }
 
 /**
@@ -108,7 +146,7 @@ function calculateChampionPoints(predicted, actual) {
  */
 function calculateTopScorerPoints(predicted, actual) {
   if (!predicted || !actual) return 0;
-  return predicted.toLowerCase().trim() === actual.toLowerCase().trim() ? 3 : 0;
+  return namesMatch(predicted, actual) ? 3 : 0;
 }
 
 /**
@@ -145,5 +183,7 @@ module.exports = {
   calculateTopScorerPoints,
   calculateGroupPoints,
   isKnockout,
-  getResult
+  getResult,
+  normalizeName,
+  namesMatch
 };
