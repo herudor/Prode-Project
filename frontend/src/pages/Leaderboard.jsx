@@ -38,14 +38,15 @@ export default function Leaderboard() {
       {/* Scoring info */}
       <div className="card mb-6">
         <h3 className="font-semibold mb-3 text-gray-300">Sistema de puntuación</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
             { pts: 3, label: 'Resultado exacto', color: 'text-green-400', bg: 'bg-green-400/10' },
             { pts: 2, label: 'Diferencia correcta', color: 'text-blue-400', bg: 'bg-blue-400/10' },
             { pts: 1, label: 'Ganador/Empate', color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
-            { pts: 5, label: 'Campeón acertado', color: 'text-purple-400', bg: 'bg-purple-400/10' }
+            { pts: 5, label: 'Campeón acertado', color: 'text-purple-400', bg: 'bg-purple-400/10' },
+            { pts: 3, label: 'Goleador acertado', color: 'text-orange-400', bg: 'bg-orange-400/10' }
           ].map(item => (
-            <div key={item.pts} className={`${item.bg} rounded-lg p-3 text-center`}>
+            <div key={item.label} className={`${item.bg} rounded-lg p-3 text-center`}>
               <p className={`text-2xl font-bold ${item.color}`}>{item.pts}</p>
               <p className="text-xs text-gray-400 mt-1">{item.label}</p>
             </div>

@@ -5,6 +5,7 @@ const GroupPrediction = require('../models/GroupPrediction');
 const TournamentPrediction = require('../models/TournamentPrediction');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { compareRankingEntries } = require('../utils/ranking');
 
 // GET /api/leaderboard - tabla de ranking
 router.get('/', auth, async (req, res) => {
@@ -49,7 +50,8 @@ router.get('/', auth, async (req, res) => {
         totalPoints: mp.totalPoints + (groupMap[uid] || 0) + (tournamentMap[uid] || 0),
         totalPredictions: mp.totalPredictions,
         exactResults: mp.exactResults,
-        correctResults: mp.correctResults
+        correctResults: mp.correctResults,
+        tournamentPoints: tournamentMap[uid] || 0
       };
     });
 
@@ -60,7 +62,8 @@ router.get('/', auth, async (req, res) => {
           totalPoints: groupMap[uid] + (tournamentMap[uid] || 0),
           totalPredictions: 0,
           exactResults: 0,
-          correctResults: 0
+          correctResults: 0,
+          tournamentPoints: tournamentMap[uid] || 0
         };
       }
     });
@@ -72,7 +75,8 @@ router.get('/', auth, async (req, res) => {
           totalPoints: tournamentMap[uid],
           totalPredictions: 0,
           exactResults: 0,
-          correctResults: 0
+          correctResults: 0,
+          tournamentPoints: tournamentMap[uid]
         };
       }
     });
@@ -89,8 +93,9 @@ router.get('/', auth, async (req, res) => {
       ...pointsMap[user._id.toString()]
     }));
 
-    // Ordenar por puntos desc
-    leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
+    // Ordenar por puntos desc. Ante empate desempata quien tenga mas resultados
+    // exactos, luego mas aciertos totales, y por ultimo orden alfabetico.
+    leaderboard.sort(compareRankingEntries);
 
     // Agregar posición
     leaderboard.forEach((entry, index) => {

@@ -48,6 +48,7 @@ export default function LeaderboardTable({ data, loading, highlightSearch }) {
             <th className="pb-3 pr-4">Jugador</th>
             <th className="pb-3 pr-4 text-center">Predicciones</th>
             <th className="pb-3 pr-4 text-center">Exactos</th>
+            <th className="pb-3 pr-4 text-center">Torneo</th>
             <th className="pb-3 text-center font-bold text-gray-400">Puntos</th>
           </tr>
         </thead>
@@ -78,6 +79,11 @@ export default function LeaderboardTable({ data, loading, highlightSearch }) {
                 </td>
                 <td className="py-3 pr-4 text-center text-green-400">
                   {entry.exactResults}
+                </td>
+                <td className="py-3 pr-4 text-center" title="Puntos por campeón y goleador">
+                  <span className={entry.tournamentPoints > 0 ? 'text-purple-400 font-medium' : 'text-gray-600'}>
+                    {entry.tournamentPoints > 0 ? `+${entry.tournamentPoints}` : '0'}
+                  </span>
                 </td>
                 <td className="py-3 text-center">
                   <span className={`text-xl font-bold ${isMe ? 'text-primary-400' : 'text-white'}`}>
